@@ -4,7 +4,11 @@
 
 <img src="logo.jpg" alt="aquasdk logo" width="200"/>
 
-AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK from an OpenAPI specification. It enables easy integration with APIs through a chainable, Waterline-like syntax. AquaSDK helps you rapidly create SDKs, making it easier to interact with RESTful APIs.
+AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK from an OpenAPI specification. It enables easy integration with APIs through a chainable, **Waterline-like** syntax. AquaSDK helps you rapidly create SDKs, making it easier to interact with RESTful APIs.
+
+### **Why**
+
+**Waterline ORM**, commonly used in (Sails.js)[https://sailsjs.com/], is often praised for its intuitive and flexible syntax, which simplifies database interactions.
 
 ---
 
@@ -57,11 +61,11 @@ generate-sdk ./swagger.json ./sdk 1.0.0 --verbose
 
 The generated SDK includes the following features:
 
-- **Waterline-like Syntax**: Chainable query methods for interacting with your API, similar to Sails.js/Waterline ORM.
-- **Automatic Model Generation**: Automatically generates model classes based on your OpenAPI schema.
+- **Waterline-like Syntax**: Chainable query methods for interacting with your API, similar to Sails.js/Waterline. Brings ORM-style chaining (`.find()`, `.limit()`, `.sort()`) to REST API calls, making client-side code more expressive.
+- **OpenAPI-Driven Development**: Automates SDK generation from specs, reducing human error and ensuring alignment with API contracts.
 - **Promise-based API**: All API calls return promises, making them compatible with `async/await`.
 - **Comprehensive Error Handling**: Includes detailed and meaningful error messages.
-- **Support for Associations**: Works with relationships between models (like `findOne` and `findMany`).
+- **Support for Associations**: Handling relationships via `.populate()` (if implemented) would mirror Waterline's eager-loading, a standout feature for nested resources.
 
 ---
 
