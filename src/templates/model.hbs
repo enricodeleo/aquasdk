@@ -1,0 +1,71 @@
+/**
+ * {{model.name}} Model
+ * Generated: {{timestamp}}
+ */
+
+/**
+ * {{model.name}} model class
+ */
+export class {{pascalCase model.name}} {
+  /**
+   * Create a new {{model.name}} instance
+   * @param {Object} data - Initial data
+   */
+  constructor(data = {}) {
+    {{#each model.properties}}
+    /**
+     * {{description}}
+     * @type {{{type}}}
+     */
+    this.{{name}} = data.{{name}} !== undefined ? data.{{name}} : {{#if required}}null{{else}}undefined{{/if}};
+    {{/each}}
+  }
+
+  /**
+   * Validate the model
+   * @returns {Object} - Validation result {valid: boolean, errors: Object}
+   */
+  validate() {
+    const errors = {};
+
+    {{#each model.properties}}
+    {{#if required}}
+    if (this.{{name}} === null || this.{{name}} === undefined) {
+      errors.{{name}} = 'is required';
+    }
+    {{/if}}
+    {{/each}}
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Convert the model to a plain object
+   * @returns {Object} - Plain object representation
+   */
+  toJSON() {
+    const data = {};
+
+    {{#each model.properties}}
+    if (this.{{name}} !== undefined) {
+      data.{{name}} = this.{{name}};
+    }
+    {{/each}}
+
+    return data;
+  }
+
+  /**
+   * Create a {{model.name}} instance from JSON data
+   * @param {Object} data - JSON data
+   * @returns {{{pascalCase model.name}}} - New model instance
+   */
+  static fromJSON(data) {
+    return new {{pascalCase model.name}}(data);
+  }
+}
+
+export default {{pascalCase model.name}};

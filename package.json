@@ -1,0 +1,48 @@
+{
+  "name": "aquasdk",
+  "version": "1.4.0",
+  "description": "A modern, chainable SDK generator from OpenAPI specs.",
+  "keywords": [
+    "api",
+    "sdk",
+    "generator",
+    "openapi",
+    "swagger",
+    "rest",
+    "typescript",
+    "axios",
+    "waterline",
+    "cli",
+    "automation"
+  ],
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "generate-sdk": "./src/index.js"
+  },
+  "scripts": {
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
+    "prepublishOnly": "npm run lint"
+  },
+  "author": "Enrico Deleo <hello@enricodeleo.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enricodeleo/aquasdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enricodeleo/aquasdk/issues"
+  },
+  "homepage": "https://github.com/enricodeleo/aquasdk#readme",
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "axios": "^1.8.1",
+    "change-case": "^5.4.4",
+    "handlebars": "^4.7.8",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.22.0"
+  }
+}

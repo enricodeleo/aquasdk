@@ -1,0 +1,239 @@
+/**
+ * {{pascalCase resource.name}} Resource
+ * Generated: {{timestamp}}
+ */
+
+import { buildQueryString } from '../utils/queryUtils.js';
+
+export class {{pascalCase resource.name}}Resource {
+  /**
+   * Create a new {{pascalCase resource.name}} resource
+   * @param {ApiClient} client - API client instance
+   */
+  constructor(client) {
+    this.client = client;
+    this.resourcePath = '{{resource.name}}'; // Preserve the exact path name
+  }
+
+  /**
+   * Starts a new query chain with the given criteria
+   * @param {Object} criteria - Filter criteria
+   * @returns {QueryChain} - Query chain for further operations
+   */
+  find(criteria = {}) {
+    return new QueryChain(this.client, this.resourcePath, criteria);
+  }
+
+  /**
+   * Find a single record by id
+   * @param {string|number} id - Record id
+   * @returns {Promise<Object>} - Found record
+   */
+  async findOne(id) {
+    return await this.find({ id }).executeOne();
+  }
+
+  /**
+   * Create a new record
+   * @param {Object} data - Record data
+   * @returns {Promise<Object>} - Created record
+   */
+  async create(data) {
+    return await this.client.request({
+      method: 'post',
+      url: `/${this.resourcePath}`,
+      data
+    });
+  }
+
+  /**
+   * Update a record by id
+   * @param {string|number} id - Record id
+   * @param {Object} data - Update data
+   * @returns {Promise<Object>} - Updated record
+   */
+  async update(id, data) {
+    return await this.client.request({
+      method: 'put',
+      url: `/${this.resourcePath}/${id}`,
+      data
+    });
+  }
+
+  /**
+   * Delete a record by id
+   * @param {string|number} id - Record id
+   * @returns {Promise<Object>} - Deletion result
+   */
+  async destroy(id) {
+    return await this.client.request({
+      method: 'delete',
+      url: `/${this.resourcePath}/${id}`
+    });
+  }
+
+  {{#each resource.operations}}
+  /**
+   * {{summary}}
+   * {{description}}
+   {{#each pathParams}}
+   * @param {string} {{this}} - Path parameter
+   {{/each}}
+   {{#if hasRequestBody}}
+   * @param {Object} data - Request body
+   {{/if}}
+   {{#if queryParams.length}}
+   * @param {Object} [query] - Query parameters
+   {{/if}}
+   * @returns {Promise<{{returnType}}>} - Response data
+   */
+  async {{camelCase id}}({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data{{#if queryParams.length}}, {{/if}}{{/if}}{{#if queryParams.length}}query = {}{{/if}}) {
+    let url = '{{path}}'
+      {{#each pathParams}}
+      .replace('{{{this}}}', encodeURIComponent({{this}}))
+      {{/each}};
+
+    {{#if queryParams.length}}
+    if (Object.keys(query).length > 0) {
+      url += buildQueryString(query);
+    }
+    {{/if}}
+
+    return await this.client.request({
+      method: '{{method}}',
+      url,
+      {{#if hasRequestBody}}
+      data,
+      {{/if}}
+    });
+  }
+
+  {{/each}}
+}
+
+/**
+ * Query chain for waterline-like syntax
+ */
+class QueryChain {
+  constructor(client, resourceName, criteria = {}) {
+    this.client = client;
+    this.resourceName = resourceName;
+    this.criteria = { ...criteria };
+    this.limitValue = null;
+    this.skipValue = 0;
+    this.sortValue = null;
+    this.selectFields = null;
+    this.populateFields = null;
+  }
+
+  /**
+   * Set the maximum number of records to return
+   * @param {number} limit - Maximum number of records
+   * @returns {QueryChain} - This query chain
+   */
+  limit(limit) {
+    this.limitValue = limit;
+    return this;
+  }
+
+  /**
+   * Set the number of records to skip
+   * @param {number} skip - Number of records to skip
+   * @returns {QueryChain} - This query chain
+   */
+  skip(skip) {
+    this.skipValue = skip;
+    return this;
+  }
+
+  /**
+   * Set the fields to select
+   * @param {string[]} fields - Fields to select
+   * @returns {QueryChain} - This query chain
+   */
+  select(fields) {
+    this.selectFields = Array.isArray(fields) ? fields : [fields];
+    return this;
+  }
+
+  /**
+   * Set the sort order
+   * @param {Object|string} sort - Sort criteria
+   * @returns {QueryChain} - This query chain
+   */
+  sort(sort) {
+    this.sortValue = sort;
+    return this;
+  }
+
+  /**
+   * Specify fields to populate
+   * @param {string[]} fields - Fields to populate
+   * @returns {QueryChain} - This query chain
+   */
+  populate(fields) {
+    this.populateFields = Array.isArray(fields) ? fields : [fields];
+    return this;
+  }
+
+  /**
+   * Execute the query
+   * @returns {Promise<Object[]>} - Found records
+   */
+  async execute() {
+    const queryParams = { ...this.criteria };
+
+    if (this.limitValue !== null) {
+      queryParams.limit = this.limitValue;
+    }
+
+    if (this.skipValue > 0) {
+      queryParams.skip = this.skipValue;
+    }
+
+    if (this.sortValue) {
+      queryParams.sort = this.sortValue;
+    }
+
+    if (this.selectFields) {
+      queryParams.select = this.selectFields.join(',');
+    }
+
+    if (this.populateFields) {
+      queryParams.populate = this.populateFields.join(',');
+    }
+
+    const url = `/${this.resourceName}${buildQueryString(queryParams)}`;
+
+    return await this.client.request({
+      method: 'get',
+      url
+    });
+  }
+
+  /**
+   * Execute the query and return a single record
+   * @returns {Promise<Object>} - Found record
+   */
+  async executeOne() {
+    const results = await this.limit(1).execute();
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  /**
+   * Count records matching the criteria
+   * @returns {Promise<number>} - Count of matching records
+   */
+  async count() {
+    const url = `/${this.resourceName}/count${buildQueryString(this.criteria)}`;
+
+    const result = await this.client.request({
+      method: 'get',
+      url
+    });
+
+    return result.count || 0;
+  }
+}
+
+export default {{pascalCase resource.name}}Resource

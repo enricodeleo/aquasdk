@@ -1,0 +1,98 @@
+// src/templates/client.hbs
+/**
+* API Client for {{apiInfo.title}}
+* Generated: {{timestamp}}
+*/
+
+import axios from 'axios';
+
+export class ApiClient {
+  /**
+  * Create a new API client instance
+  * @param {Object} config - Configuration options
+  * @param {string} [config.baseUrl] - Base URL for API requests
+  * @param {Object} [config.headers] - Default headers for requests
+  * @param {Object} [config.auth] - Auth configuration {username, password} or {token}
+  */
+  constructor(config = {}) {
+    this.baseUrl = config.baseUrl || '{{apiInfo.baseUrl}}';
+
+    // Initialize axios instance
+    this.axios = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(config.headers || {})
+      }
+    });
+
+    // Configure authentication if provided
+    if (config.auth) {
+      if (config.auth.token) {
+        this.setToken(config.auth.token);
+      } else if (config.auth.username && config.auth.password) {
+        this.setBasicAuth(config.auth.username, config.auth.password);
+      }
+    }
+  }
+
+  /**
+  * Set the authorization token
+  * @param {string} token - Auth token
+  */
+  setToken(token) {
+    this.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    return this;
+  }
+
+  /**
+  * Set basic authentication
+  * @param {string} username
+  * @param {string} password
+  */
+  setBasicAuth(username, password) {
+    const auth = Buffer.from(`${username}:${password}`).toString('base64');
+    this.axios.defaults.headers.common['Authorization'] = `Basic ${auth}`;
+    return this;
+  }
+
+  /**
+  * Set a custom header
+  * @param {string} name - Header name
+  * @param {string} value - Header value
+  */
+  setHeader(name, value) {
+    this.axios.defaults.headers.common[name] = value;
+    return this;
+  }
+
+  /**
+  * Make a request to the API
+  * @param {Object} config - Request configuration
+  * @returns {Promise<Object>} - Response data
+  */
+  async request(config) {
+    try {
+      const response = await this.axios(config);
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const apiError = new Error(`API Error: ${error.response.status} ${error.response.statusText}`);
+        apiError.status = error.response.status;
+        apiError.data = error.response.data;
+        throw apiError;
+      } else if (error.request) {
+        // The request was made but no response was received
+        throw new Error('No response received from the server');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        throw error;
+      }
+    }
+  }
+}
+
+export default ApiClient;

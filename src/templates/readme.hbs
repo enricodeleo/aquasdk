@@ -1,0 +1,70 @@
+# {{apiInfo.title}} - JavaScript SDK
+
+{{apiInfo.description}}
+
+## Installation
+
+```bash
+npm install {{camelCase apiInfo.title}}-sdk
+```
+
+## Basic Usage
+
+```javascript
+import API from '{{camelCase apiInfo.title}}-sdk';
+
+// Initialize the SDK
+const api = new API({
+  baseUrl: '{{apiInfo.baseUrl}}',
+  auth: {
+    token: 'your-auth-token'
+    // Or use basic auth
+    // username: 'user',
+    // password: 'pass'
+  }
+});
+
+// Examples using the Waterline-like syntax
+async function examples() {
+  // Find all records
+  const allRecords = await api.resourceName.find().execute();
+
+  // Find with criteria
+  const filteredRecords = await api.resourceName
+    .find({ field: 'value' })
+    .execute();
+
+  // With pagination and sorting
+  const paginatedRecords = await api.resourceName
+    .find()
+    .limit(10)
+    .skip(20)
+    .sort('createdAt DESC')
+    .execute();
+
+  // Find one by ID
+  const record = await api.resourceName.findOne(123);
+
+  // Create a record
+  const newRecord = await api.resourceName.create({
+    field1: 'value1',
+    field2: 'value2'
+  });
+
+  // Update a record
+  const updatedRecord = await api.resourceName.update(123, {
+    field1: 'updated value'
+  });
+
+  // Delete a record
+  await api.resourceName.destroy(123);
+}
+```
+
+## SDK Documentation
+
+For detailed API documentation, refer to the JSDoc generated documentation.
+
+## SDK Version
+
+`{{apiInfo.version}}`
