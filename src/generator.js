@@ -353,13 +353,13 @@ ${apiInfo.description}
 ## Installation
 
 \`\`\`bash
-npm install @ediliziasemplice/${camelCase(apiInfo.title)}-sdk
+npm install ${camelCase(apiInfo.title)}-sdk
 \`\`\`
 
 ## Basic Usage
 
 \`\`\`javascript
-import API from '@ediliziasemplice/${camelCase(apiInfo.title)}-sdk';
+import API from '${camelCase(apiInfo.title)}-sdk';
 
 // Initialize the SDK
 const api = new API({
