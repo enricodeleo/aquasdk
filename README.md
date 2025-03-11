@@ -8,7 +8,7 @@ AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK fr
 
 ### **Why**
 
-**Waterline ORM**, commonly used in (Sails.js)[https://sailsjs.com/], is often praised for its intuitive and flexible syntax, which simplifies database interactions.
+**Waterline ORM**, commonly used in [Sails.js](https://sailsjs.com/), is often praised for its intuitive and flexible syntax, which simplifies database interactions.
 
 ---
 
