@@ -27,7 +27,7 @@ export class {{pascalCase resource.name}}Resource {
   /**
    * Find a single record by id
    * @param {string|number} id - Record id
-   * @returns {Promise<Object>} - Found record
+   * @returns {Promise<Object>} - Found record with data and headers
    */
   async findOne(id) {
     return await this.find({ id }).executeOne();
@@ -36,7 +36,7 @@ export class {{pascalCase resource.name}}Resource {
   /**
    * Create a new record
    * @param {Object} data - Record data
-   * @returns {Promise<Object>} - Created record
+   * @returns {Promise<Object>} - Created record with data and headers
    */
   async create(data) {
     return await this.client.request({
@@ -50,7 +50,7 @@ export class {{pascalCase resource.name}}Resource {
    * Update a record by id
    * @param {string|number} id - Record id
    * @param {Object} data - Update data
-   * @returns {Promise<Object>} - Updated record
+   * @returns {Promise<Object>} - Updated record with data and headers
    */
   async update(id, data) {
     return await this.client.request({
@@ -63,7 +63,7 @@ export class {{pascalCase resource.name}}Resource {
   /**
    * Delete a record by id
    * @param {string|number} id - Record id
-   * @returns {Promise<Object>} - Deletion result
+   * @returns {Promise<Object>} - Deletion result with data and headers
    */
   async destroy(id) {
     return await this.client.request({
@@ -85,7 +85,7 @@ export class {{pascalCase resource.name}}Resource {
    {{#if queryParams.length}}
    * @param {Object} [query] - Query parameters
    {{/if}}
-   * @returns {Promise<{{returnType}}>} - Response data
+   * @returns {Promise<{{returnType}}>} - Response with data and headers
    */
   async {{camelCase id}}({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data{{#if queryParams.length}}, {{/if}}{{/if}}{{#if queryParams.length}}query = {}{{/if}}) {
     let url = '{{path}}'
@@ -178,7 +178,7 @@ class QueryChain {
 
   /**
    * Execute the query
-   * @returns {Promise<Object[]>} - Found records
+   * @returns {Promise<Object>} - Found records with data and headers
    */
   async execute() {
     const queryParams = { ...this.criteria };
@@ -213,26 +213,39 @@ class QueryChain {
 
   /**
    * Execute the query and return a single record
-   * @returns {Promise<Object>} - Found record
+   * @returns {Promise<Object>} - Found record with data and headers
    */
   async executeOne() {
-    const results = await this.limit(1).execute();
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const response = await this.limit(1).execute();
+    if (response.data && Array.isArray(response.data)) {
+      return {
+        data: response.data.length > 0 ? response.data[0] : null,
+        headers: response.headers
+      };
+    }
+    return response;
   }
 
   /**
    * Count records matching the criteria
-   * @returns {Promise<number>} - Count of matching records
+   * @returns {Promise<Object>} - Count of matching records with data and headers
    */
   async count() {
     const url = `/${this.resourceName}/count${buildQueryString(this.criteria)}`;
 
-    const result = await this.client.request({
+    const response = await this.client.request({
       method: 'get',
       url
     });
 
-    return result.count || 0;
+    if (response.data) {
+      return {
+        data: { count: response.data.count || 0 },
+        headers: response.headers
+      };
+    }
+    
+    return response;
   }
 }
 

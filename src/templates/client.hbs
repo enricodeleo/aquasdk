@@ -70,12 +70,15 @@ export class ApiClient {
   /**
   * Make a request to the API
   * @param {Object} config - Request configuration
-  * @returns {Promise<Object>} - Response data
+  * @returns {Promise<Object>} - Response with data and headers
   */
   async request(config) {
     try {
       const response = await this.axios(config);
-      return response.data;
+      return {
+        data: response.data,
+        headers: response.headers
+      };
     } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
@@ -83,6 +86,7 @@ export class ApiClient {
         const apiError = new Error(`API Error: ${error.response.status} ${error.response.statusText}`);
         apiError.status = error.response.status;
         apiError.data = error.response.data;
+        apiError.headers = error.response.headers;
         throw apiError;
       } else if (error.request) {
         // The request was made but no response was received

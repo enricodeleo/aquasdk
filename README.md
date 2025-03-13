@@ -64,6 +64,7 @@ The generated SDK includes the following features:
 - **Waterline-like Syntax**: Chainable query methods for interacting with your API, similar to Sails.js/Waterline. Brings ORM-style chaining (`.find()`, `.limit()`, `.sort()`) to REST API calls, making client-side code more expressive.
 - **OpenAPI-Driven Development**: Automates SDK generation from specs, reducing human error and ensuring alignment with API contracts.
 - **Promise-based API**: All API calls return promises, making them compatible with `async/await`.
+- **Response Headers Access**: All API responses include both data and headers, allowing access to important HTTP header information.
 - **Comprehensive Error Handling**: Includes detailed and meaningful error messages.
 - **Support for Associations**: Handling relationships via `.populate()` (if implemented) would mirror Waterline's eager-loading, a standout feature for nested resources.
 
@@ -91,42 +92,53 @@ const api = new API({
 // Examples using Waterline-like syntax
 async function examples() {
   // Find all users
-  const users = await api.users.find().execute();
+  const response = await api.users.find().execute();
+  const users = response.data;
+  const headers = response.headers;
 
   // Find users with criteria
-  const activeUsers = await api.users
+  const activeResponse = await api.users
     .find({ active: true })
     .execute();
+  const activeUsers = activeResponse.data;
 
   // Pagination and sorting
-  const paginatedUsers = await api.users
+  const paginatedResponse = await api.users
     .find()
     .limit(10)
     .skip(20)
     .sort('createdAt DESC')
     .execute();
+  const paginatedUsers = paginatedResponse.data;
 
   // Find a single user by ID
-  const user = await api.users.findOne(123);
+  const userResponse = await api.users.findOne(123);
+  const user = userResponse.data;
 
   // Create a new user
-  const newUser = await api.users.create({
+  const createResponse = await api.users.create({
     name: 'John Doe',
     email: 'john@example.com'
   });
+  const newUser = createResponse.data;
+  
+  // Access response headers (e.g., for rate limiting info)
+  console.log('Rate limit remaining:', createResponse.headers['x-rate-limit-remaining']);
 
   // Update an existing user
-  const updatedUser = await api.users.update(123, {
+  const updateResponse = await api.users.update(123, {
     name: 'Jane Doe'
   });
+  const updatedUser = updateResponse.data;
 
   // Delete a user
-  await api.users.destroy(123);
+  const deleteResponse = await api.users.destroy(123);
 
   // Use complex criteria with operators
-  const olderUsers = await api.users
+  const olderResponse = await api.users
     .find({ age: { '>': 30 } })
     .execute();
+  const olderUsers = olderResponse.data;
 }
 ```
 
