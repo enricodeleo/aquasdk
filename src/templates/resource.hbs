@@ -13,6 +13,9 @@ export class {{pascalCase resource.name}}Resource {
   constructor(client) {
     this.client = client;
     this.resourcePath = '{{resource.name}}'; // Preserve the exact path name
+    
+    // Make QueryChain methods available at the resource level
+    this.then = (resolve, reject) => this.find().execute().then(resolve, reject);
   }
 
   /**
@@ -27,10 +30,15 @@ export class {{pascalCase resource.name}}Resource {
   /**
    * Find a single record by id
    * @param {string|number} id - Record id
+   * @param {string|string[]} [populate] - Fields to populate
    * @returns {Promise<Object>} - Found record with data and headers
    */
-  async findOne(id) {
-    return await this.find({ id }).executeOne();
+  async findOne(id, populate) {
+    const query = this.find({ id });
+    if (populate) {
+      query.populate(populate);
+    }
+    return await query.executeOne();
   }
 
   /**
@@ -124,6 +132,9 @@ class QueryChain {
     this.sortValue = null;
     this.selectFields = null;
     this.populateFields = null;
+    
+    // Make the QueryChain thenable
+    this.then = (resolve, reject) => this.execute().then(resolve, reject);
   }
 
   /**
