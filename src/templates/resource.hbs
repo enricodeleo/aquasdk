@@ -31,14 +31,21 @@ export class {{pascalCase resource.name}}Resource {
    * Find a single record by id
    * @param {string|number} id - Record id
    * @param {string|string[]} [populate] - Fields to populate
-   * @returns {Promise<Object>} - Found record with data and headers
+   * @returns {QueryChain|Promise<Object>} - Query chain for further operations or found record with data and headers
    */
-  async findOne(id, populate) {
+  findOne(id, populate) {
     const query = this.find({ id });
     if (populate) {
       query.populate(populate);
     }
-    return await query.executeOne();
+    
+    // Add a custom executeOne method that will be called when awaited
+    const originalThen = query.then;
+    query.then = (resolve, reject) => {
+      return query.executeOne().then(resolve, reject);
+    };
+    
+    return query;
   }
 
   /**
