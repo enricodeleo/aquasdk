@@ -67,6 +67,7 @@ The generated SDK includes the following features:
 - **Response Headers Access**: All API responses include both data and headers, allowing access to important HTTP header information.
 - **Comprehensive Error Handling**: Includes detailed and meaningful error messages.
 - **Support for Associations**: Handling relationships via `.populate()` (if implemented) would mirror Waterline's eager-loading, a standout feature for nested resources.
+- **Configurable HTTP Client**: Support for additional Axios configuration options to customize timeout, headers, and other HTTP client settings.
 
 ---
 
@@ -86,6 +87,13 @@ const api = new API({
     // Or use basic auth
     // username: 'user',
     // password: 'pass'
+  },
+  // Additional Axios configuration options
+  axiosConfig: {
+    timeout: 5000,
+    headers: {
+      'Custom-Header': 'value'
+    }
   }
 });
 
