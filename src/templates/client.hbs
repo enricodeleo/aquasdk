@@ -13,17 +13,28 @@ export class ApiClient {
   * @param {string} [config.baseUrl] - Base URL for API requests
   * @param {Object} [config.headers] - Default headers for requests
   * @param {Object} [config.auth] - Auth configuration {username, password} or {token}
+  * @param {number} [config.timeout] - Request timeout in milliseconds
+  * @param {boolean} [config.withCredentials] - Whether to send cookies
+  * @param {string} [config.responseType] - Response type
+  * @param {Object} [config.proxy] - Proxy configuration
+  * @param {Function} [config.validateStatus] - Define valid status codes
+  * @param {Object} [config.params] - Default URL parameters
+  * ... and other Axios configuration options
   */
   constructor(config = {}) {
     this.baseUrl = config.baseUrl || '{{apiInfo.baseUrl}}';
 
-    // Initialize axios instance
+    // Extract custom config properties
+    const { baseUrl, auth, ...axiosConfig } = config;
+
+    // Initialize axios instance with all supported axios configurations
     this.axios = axios.create({
+      ...axiosConfig,
       baseURL: this.baseUrl,
       headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(config.headers || {})
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(config.headers || {})
       }
     });
 
