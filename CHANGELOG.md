@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.1](https://github.com/enricodeleo/aquasdk/compare/v1.8.0...v1.8.1) (2025-03-26)
+
+### Bug Fixes
+
+* improve parameter serialization for complex queries ([7a8930c](https://github.com/enricodeleo/aquasdk/commit/7a8930cc00536d17e6cd0053117a9b8f94217a35))
+
 ## [1.8.0](https://github.com/enricodeleo/aquasdk/compare/v1.7.0...v1.8.0) (2025-03-26)
 
 ### Features
