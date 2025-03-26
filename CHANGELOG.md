@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.0](https://github.com/enricodeleo/aquasdk/compare/v1.7.0...v1.8.0) (2025-03-26)
+
+### Features
+
+* add paramsSerializer support to SDK client ([e2ff8ce](https://github.com/enricodeleo/aquasdk/commit/e2ff8ce74b15075374c7d70025bf7367a8c04c10))
+
 ## [1.7.0](https://github.com/enricodeleo/aquasdk/compare/v1.6.2...v1.7.0) (2025-03-19)
 
 ### Features
