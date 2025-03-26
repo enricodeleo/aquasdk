@@ -89,10 +89,17 @@ const api = new API({
     // password: 'pass'
   },
   // Additional Axios configuration options
-  axiosConfig: {
-    timeout: 5000,
-    headers: {
-      'Custom-Header': 'value'
+  timeout: 5000,
+  headers: {
+    'Custom-Header': 'value'
+  },
+  // Custom parameter serializer
+  paramsSerializer: {
+    serialize: (params) => {
+      // Custom parameter serialization logic
+      return Object.entries(params)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
     }
   }
 });
