@@ -93,15 +93,30 @@ const api = new API({
   headers: {
     'Custom-Header': 'value'
   },
-  // Custom parameter serializer
+  // Custom parameter serializer (recommended for complex queries and nested objects)
   paramsSerializer: {
     serialize: (params) => {
-      // Custom parameter serialization logic
-      return Object.entries(params)
-        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-        .join('&');
+      // Using a library like 'qs' for proper handling of nested objects and arrays
+      // import { stringify } from 'qs';
+      return stringify(params, {
+        arrayFormat: 'brackets',
+        encode: false,
+        allowDots: true
+      });
     }
   }
+  
+  // Alternative format for Axios v1.x
+  /*
+  paramsSerializer: {
+    encode: (value) => value, // Optional custom encoder
+    serialize: (params) => stringify(params, { 
+      arrayFormat: 'brackets',
+      encode: false,
+      allowDots: true
+    })
+  }
+  */
 });
 
 // Examples using Waterline-like syntax

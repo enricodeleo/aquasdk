@@ -3,8 +3,6 @@
  * Generated: {{timestamp}}
  */
 
-import { buildQueryString } from '../utils/queryUtils.js';
-
 export class {{pascalCase resource.name}}Resource {
   /**
    * Create a new {{pascalCase resource.name}} resource
@@ -108,15 +106,12 @@ export class {{pascalCase resource.name}}Resource {
       .replace('{{{this}}}', encodeURIComponent({{this}}))
       {{/each}};
 
-    {{#if queryParams.length}}
-    if (Object.keys(query).length > 0) {
-      url += buildQueryString(query);
-    }
-    {{/if}}
-
     return await this.client.request({
       method: '{{method}}',
       url,
+      {{#if queryParams.length}}
+      params: query,
+      {{/if}}
       {{#if hasRequestBody}}
       data,
       {{/if}}
@@ -221,11 +216,10 @@ class QueryChain {
       queryParams.populate = this.populateFields.join(',');
     }
 
-    const url = `/${this.resourceName}${buildQueryString(queryParams)}`;
-
     return await this.client.request({
       method: 'get',
-      url
+      url: `/${this.resourceName}`,
+      params: queryParams
     });
   }
 
@@ -249,11 +243,10 @@ class QueryChain {
    * @returns {Promise<Object>} - Count of matching records with data and headers
    */
   async count() {
-    const url = `/${this.resourceName}/count${buildQueryString(this.criteria)}`;
-
     const response = await this.client.request({
       method: 'get',
-      url
+      url: `/${this.resourceName}/count`,
+      params: this.criteria
     });
 
     if (response.data) {
