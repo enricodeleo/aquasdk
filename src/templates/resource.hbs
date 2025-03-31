@@ -11,7 +11,7 @@ export class {{pascalCase resource.name}}Resource {
   constructor(client) {
     this.client = client;
     this.resourcePath = '{{resource.name}}'; // Preserve the exact path name
-    
+
     // Make QueryChain methods available at the resource level
     this.then = (resolve, reject) => this.find().execute().then(resolve, reject);
   }
@@ -36,13 +36,13 @@ export class {{pascalCase resource.name}}Resource {
     if (populate) {
       query.populate(populate);
     }
-    
+
     // Add a custom executeOne method that will be called when awaited
     const originalThen = query.then;
     query.then = (resolve, reject) => {
       return query.executeOne().then(resolve, reject);
     };
-    
+
     return query;
   }
 
@@ -67,7 +67,7 @@ export class {{pascalCase resource.name}}Resource {
    */
   async update(id, data) {
     return await this.client.request({
-      method: 'put',
+      method: 'patch',
       url: `/${this.resourcePath}/${id}`,
       data
     });
@@ -134,7 +134,7 @@ class QueryChain {
     this.sortValue = null;
     this.selectFields = null;
     this.populateFields = null;
-    
+
     // Make the QueryChain thenable
     this.then = (resolve, reject) => this.execute().then(resolve, reject);
   }
@@ -255,7 +255,7 @@ class QueryChain {
         headers: response.headers
       };
     }
-    
+
     return response;
   }
 }
