@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.2](https://github.com/enricodeleo/aquasdk/compare/v1.8.1...v1.8.2) (2025-03-31)
+
+### Bug Fixes
+
+* **resource.hbs:** change PUT request to PATCH request for update method to allow partial updates ([8641b40](https://github.com/enricodeleo/aquasdk/commit/8641b40e5daefe7cf6ba1c5fb776f882cc847bb9))
+
 ## [1.8.1](https://github.com/enricodeleo/aquasdk/compare/v1.8.0...v1.8.1) (2025-03-26)
 
 ### Bug Fixes
