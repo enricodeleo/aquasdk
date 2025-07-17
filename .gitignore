@@ -39,3 +39,4 @@ lib-cov
 .api
 .aider*
 .env
+sdk_tags
