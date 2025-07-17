@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/enricodeleo/aquasdk/compare/v1.8.2...v2.2.0) (2025-07-17)
+
+### Features
+
+* **generator:** Implement factory pattern for full sub-resource support ([ca477e7](https://github.com/enricodeleo/aquasdk/commit/ca477e79fdaac9c1cfc6b2395fd341ad9a4df8f9))
+* ideomatic api ([3b87cff](https://github.com/enricodeleo/aquasdk/commit/3b87cfff16c08ee8f9399920826464249e6ae60f))
+
+### Bug Fixes
+
+* **generator:** Ensure correct operation mapping and response handling ([db0dade](https://github.com/enricodeleo/aquasdk/commit/db0dadecc7d8322f5da74971ab6c2924df985d71))
+* **lint:** Remove unused function and fix comma-dangle errors ([ad3499c](https://github.com/enricodeleo/aquasdk/commit/ad3499c49aabe5b5b1ea1e5fc2ae856c2e92dde0))
+
 ## 2.1.0 (2025-07-17)
 
 ### Features
