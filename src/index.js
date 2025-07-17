@@ -13,12 +13,9 @@ async function main() {
       allowPositionals: true
     });
 
-    if (positionals.length < 3) {
-      console.error('Usage: node src/index.js <swagger-file> <output-dir> <version> [--verbose]');
-      process.exit(1);
-    }
-
-    const [swaggerFile, outputDir, version] = positionals;
+    const swaggerFile = positionals[0] || './swagger.json';
+    const outputDir = positionals[1] || './sdk';
+    const version = positionals[2] || '1.0.0';
     const verbose = values.verbose || false;
 
     if (verbose) {
