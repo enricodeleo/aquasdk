@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.1](https://github.com/enricodeleo/aquasdk/compare/v1.9.0...v1.9.1) (2025-07-17)
+
+### Bug Fixes
+
+* whitespace in subresources ([be12fc5](https://github.com/enricodeleo/aquasdk/commit/be12fc5ba1e2cc254ed85f652ea4fd30b8fd8a92))
+
 ## [1.9.0](https://github.com/enricodeleo/aquasdk/compare/v1.8.3...v1.9.0) (2025-07-17)
 
 ### Features
