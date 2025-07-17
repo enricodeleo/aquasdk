@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.3](https://github.com/enricodeleo/aquasdk/compare/v1.9.2...v1.9.3) (2025-07-17)
+
+### Bug Fixes
+
+* subresources ([d5c79cf](https://github.com/enricodeleo/aquasdk/commit/d5c79cf415f98acad37438ef8d841aafe85c74c1))
+
 ## [1.9.2](https://github.com/enricodeleo/aquasdk/compare/v1.9.1...v1.9.2) (2025-07-17)
 
 ### Bug Fixes
