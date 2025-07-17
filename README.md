@@ -12,6 +12,14 @@ AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK fr
 
 ---
 
+> **⚠️ Note on Upcoming v2.0.0 Release**
+>
+> We are excited to announce that version 2.0.0 is underway! This major update will introduce significant improvements, including a more robust and intuitive Waterline-style query builder.
+>
+> Please be aware that **v2.0.0 will include breaking changes**. The new query builder is designed to be more powerful and flexible, but it will require updates to your existing code. We believe the long-term benefits will be well worth the one-time migration effort.
+
+---
+
 ## 📦 **Installation**
 
 You can easily install AquaSDK globally, or locally for development.
@@ -62,11 +70,11 @@ generate-sdk ./swagger.json ./sdk 1.0.0 --verbose
 The generated SDK includes the following features:
 
 - **Waterline-like Syntax**: Chainable query methods for interacting with your API, similar to Sails.js/Waterline. Brings ORM-style chaining (`.find()`, `.limit()`, `.sort()`) to REST API calls, making client-side code more expressive.
+- **Thenable Queries**: Await queries directly without needing an `.execute()` call, leading to cleaner, more intuitive code.
 - **OpenAPI-Driven Development**: Automates SDK generation from specs, reducing human error and ensuring alignment with API contracts.
 - **Promise-based API**: All API calls return promises, making them compatible with `async/await`.
 - **Response Headers Access**: All API responses include both data and headers, allowing access to important HTTP header information.
-- **Comprehensive Error Handling**: Includes detailed and meaningful error messages.
-- **Support for Associations**: Handling relationships via `.populate()` (if implemented) would mirror Waterline's eager-loading, a standout feature for nested resources.
+- **Support for Associations**: Handling relationships via `.populate()` mirrors Waterline's eager-loading, a standout feature for nested resources.
 - **Configurable HTTP Client**: Support for additional Axios configuration options to customize timeout, headers, and other HTTP client settings.
 
 ---
@@ -78,6 +86,7 @@ Once the SDK is generated, you can use it as follows:
 ### Example Code
 ```javascript
 import API from './sdk/index.js';
+import { operators } from './sdk/utils/queryUtils.js';
 
 // Initialize the SDK
 const api = new API({
@@ -93,82 +102,51 @@ const api = new API({
   headers: {
     'Custom-Header': 'value'
   },
-  // Custom parameter serializer (recommended for complex queries and nested objects)
-  paramsSerializer: {
-    serialize: (params) => {
-      // Using a library like 'qs' for proper handling of nested objects and arrays
-      // import { stringify } from 'qs';
-      return stringify(params, {
-        arrayFormat: 'brackets',
-        encode: false,
-        allowDots: true
-      });
-    }
-  }
-  
-  // Alternative format for Axios v1.x
-  /*
-  paramsSerializer: {
-    encode: (value) => value, // Optional custom encoder
-    serialize: (params) => stringify(params, { 
-      arrayFormat: 'brackets',
-      encode: false,
-      allowDots: true
-    })
-  }
-  */
 });
 
-// Examples using Waterline-like syntax
+// Examples using the new Waterline-style syntax
 async function examples() {
-  // Find all users
-  const response = await api.users.find().execute();
-  const users = response.data;
-  const headers = response.headers;
+  // Find all users (queries are now "thenable")
+  const usersResponse = await api.users.find();
+  const users = usersResponse.data;
+  const headers = usersResponse.headers;
 
-  // Find users with criteria
-  const activeResponse = await api.users
+  // Find a single user by ID and select specific fields
+  const user = await api.users.findOne(123).select(['name', 'email']);
+
+  // Find active users, populate their company, and sort by creation date
+  const activeUsers = await api.users
     .find({ active: true })
-    .execute();
-  const activeUsers = activeResponse.data;
+    .populate('company')
+    .sort('createdAt DESC');
 
-  // Pagination and sorting
-  const paginatedResponse = await api.users
-    .find()
+  // Advanced query with pagination and field selection
+  const paginatedAdmins = await api.users
+    .find({ role: 'admin' })
     .limit(10)
     .skip(20)
-    .sort('createdAt DESC')
-    .execute();
-  const paginatedUsers = paginatedResponse.data;
-
-  // Find a single user by ID
-  const userResponse = await api.users.findOne(123);
-  const user = userResponse.data;
+    .select(['name', 'lastLogin']);
 
   // Create a new user
-  const createResponse = await api.users.create({
+  const newUser = await api.users.create({
     name: 'John Doe',
     email: 'john@example.com'
   });
-  const newUser = createResponse.data;
   
   // Access response headers (e.g., for rate limiting info)
-  console.log('Rate limit remaining:', createResponse.headers['x-rate-limit-remaining']);
+  console.log('Rate limit remaining:', newUser.headers['x-rate-limit-remaining']);
 
   // Update an existing user
-  const updateResponse = await api.users.update(123, {
-    name: 'Jane Doe'
-  });
-  const updatedUser = updateResponse.data;
+  const updatedUser = await api.users.update(123, { name: 'Jane Doe' });
 
   // Delete a user
-  const deleteResponse = await api.users.destroy(123);
+  await api.users.destroy(123);
 
-  // Use complex criteria with operators
-  const olderResponse = await api.users
-    .find({ age: { '>': 30 } })
-    .execute();
-  const olderUsers = olderResponse.data;
+  // Use complex criteria with operators for more powerful queries
+  const recentSignups = await api.users.find({
+    createdAt: operators.greaterThan(new Date('2024-01-01')),
+    status: operators.notIn(['archived', 'deleted'])
+  });
 }
 ```
 

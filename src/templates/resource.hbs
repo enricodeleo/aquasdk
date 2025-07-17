@@ -1,87 +1,107 @@
+import { QueryBuilder } from '../utils/queryUtils.js';
+
 /**
  * {{pascalCase resource.name}} Resource
  * Generated: {{timestamp}}
  */
-
-export class {{pascalCase resource.name}}Resource {
+export default class {{pascalCase resource.name}}Resource {
   /**
    * Create a new {{pascalCase resource.name}} resource
    * @param {ApiClient} client - API client instance
    */
   constructor(client) {
     this.client = client;
-    this.resourcePath = '{{resource.name}}'; // Preserve the exact path name
-
-    // Make QueryChain methods available at the resource level
-    this.then = (resolve, reject) => this.find().execute().then(resolve, reject);
   }
 
   /**
-   * Starts a new query chain with the given criteria
-   * @param {Object} criteria - Filter criteria
-   * @returns {QueryChain} - Query chain for further operations
+   * Starts a new query for finding records.
+   * @param {Object} [criteria] - The criteria to filter records.
+   * @returns {QueryBuilder} A QueryBuilder instance.
    */
-  find(criteria = {}) {
-    return new QueryChain(this.client, this.resourcePath, criteria);
+  find(criteria) {
+    return new QueryBuilder({
+      client: this.client,
+      method: 'get',
+      path: '/{{resource.name}}',
+      criteria,
+    });
   }
 
   /**
-   * Find a single record by id
-   * @param {string|number} id - Record id
-   * @param {string|string[]} [populate] - Fields to populate
-   * @returns {QueryChain|Promise<Object>} - Query chain for further operations or found record with data and headers
+   * Starts a new query for finding a single record.
+   * @param {string|number|Object} [criteria] - The ID or criteria to find a single record.
+   * @returns {QueryBuilder} A QueryBuilder instance that resolves to a single object.
    */
-  findOne(id, populate) {
-    const query = this.find({ id });
-    if (populate) {
-      query.populate(populate);
-    }
+  findOne(criteria) {
+    const path = (typeof criteria === 'string' || typeof criteria === 'number')
+      ? '/{{resource.name}}/{id}'
+      : '/{{resource.name}}';
+      
+    const filter = (typeof criteria === 'object' && criteria !== null) ? criteria : { id: criteria };
 
-    // Add a custom executeOne method that will be called when awaited
-    const originalThen = query.then;
-    query.then = (resolve, reject) => {
-      return query.executeOne().then(resolve, reject);
+    const qb = new QueryBuilder({
+      client: this.client,
+      method: 'get',
+      path: path,
+      criteria: filter,
+    });
+
+    // Ensure findOne resolves to a single object, not an array
+    const originalExecute = qb.execute;
+    qb.execute = async function() {
+      // If it's not a path-based ID lookup, enforce limit(1)
+      if (!path.includes('/{id}')) {
+        this.limit(1);
+      }
+      const response = await originalExecute.call(this);
+      if (response.data && Array.isArray(response.data)) {
+        return {
+          ...response,
+          data: response.data.length > 0 ? response.data[0] : null,
+        };
+      }
+      return response;
     };
-
-    return query;
+    
+    return qb;
   }
 
   /**
-   * Create a new record
-   * @param {Object} data - Record data
-   * @returns {Promise<Object>} - Created record with data and headers
+   * Creates a new record.
+   * @param {Object} data - The data for the new record.
+   * @returns {Promise<any>} A promise that resolves with the created record.
    */
-  async create(data) {
-    return await this.client.request({
+  create(data) {
+    return this.client.request({
       method: 'post',
-      url: `/${this.resourcePath}`,
-      data
+      url: '/{{resource.name}}',
+      data,
     });
   }
 
   /**
-   * Update a record by id
-   * @param {string|number} id - Record id
-   * @param {Object} data - Update data
-   * @returns {Promise<Object>} - Updated record with data and headers
+   * Updates a record by its ID.
+   * @param {string|number} id - The ID of the record to update.
+   * @param {Object} data - The data to update the record with.
+   * @returns {Promise<any>} A promise that resolves with the updated record.
    */
-  async update(id, data) {
-    return await this.client.request({
+  update(id, data) {
+    return this.client.request({
       method: 'patch',
-      url: `/${this.resourcePath}/${id}`,
-      data
+      url: `/{{resource.name}}/${id}`,
+      data,
     });
   }
 
   /**
-   * Delete a record by id
-   * @param {string|number} id - Record id
-   * @returns {Promise<Object>} - Deletion result with data and headers
+   * Destroys a record by its ID.
+   * @param {string|number} id - The ID of the record to destroy.
+   * @returns {Promise<any>} A promise that resolves when the record is destroyed.
    */
-  async destroy(id) {
-    return await this.client.request({
+  destroy(id) {
+    return this.client.request({
       method: 'delete',
-      url: `/${this.resourcePath}/${id}`
+      url: `/{{resource.name}}/${id}`,
     });
   }
 
@@ -117,147 +137,6 @@ export class {{pascalCase resource.name}}Resource {
       {{/if}}
     });
   }
-
   {{/each}}
 }
 
-/**
- * Query chain for waterline-like syntax
- */
-class QueryChain {
-  constructor(client, resourceName, criteria = {}) {
-    this.client = client;
-    this.resourceName = resourceName;
-    this.criteria = { ...criteria };
-    this.limitValue = null;
-    this.skipValue = 0;
-    this.sortValue = null;
-    this.selectFields = null;
-    this.populateFields = null;
-
-    // Make the QueryChain thenable
-    this.then = (resolve, reject) => this.execute().then(resolve, reject);
-  }
-
-  /**
-   * Set the maximum number of records to return
-   * @param {number} limit - Maximum number of records
-   * @returns {QueryChain} - This query chain
-   */
-  limit(limit) {
-    this.limitValue = limit;
-    return this;
-  }
-
-  /**
-   * Set the number of records to skip
-   * @param {number} skip - Number of records to skip
-   * @returns {QueryChain} - This query chain
-   */
-  skip(skip) {
-    this.skipValue = skip;
-    return this;
-  }
-
-  /**
-   * Set the fields to select
-   * @param {string[]} fields - Fields to select
-   * @returns {QueryChain} - This query chain
-   */
-  select(fields) {
-    this.selectFields = Array.isArray(fields) ? fields : [fields];
-    return this;
-  }
-
-  /**
-   * Set the sort order
-   * @param {Object|string} sort - Sort criteria
-   * @returns {QueryChain} - This query chain
-   */
-  sort(sort) {
-    this.sortValue = sort;
-    return this;
-  }
-
-  /**
-   * Specify fields to populate
-   * @param {string[]} fields - Fields to populate
-   * @returns {QueryChain} - This query chain
-   */
-  populate(fields) {
-    this.populateFields = Array.isArray(fields) ? fields : [fields];
-    return this;
-  }
-
-  /**
-   * Execute the query
-   * @returns {Promise<Object>} - Found records with data and headers
-   */
-  async execute() {
-    const queryParams = { ...this.criteria };
-
-    if (this.limitValue !== null) {
-      queryParams.limit = this.limitValue;
-    }
-
-    if (this.skipValue > 0) {
-      queryParams.skip = this.skipValue;
-    }
-
-    if (this.sortValue) {
-      queryParams.sort = this.sortValue;
-    }
-
-    if (this.selectFields) {
-      queryParams.select = this.selectFields.join(',');
-    }
-
-    if (this.populateFields) {
-      queryParams.populate = this.populateFields.join(',');
-    }
-
-    return await this.client.request({
-      method: 'get',
-      url: `/${this.resourceName}`,
-      params: queryParams
-    });
-  }
-
-  /**
-   * Execute the query and return a single record
-   * @returns {Promise<Object>} - Found record with data and headers
-   */
-  async executeOne() {
-    const response = await this.limit(1).execute();
-    if (response.data && Array.isArray(response.data)) {
-      return {
-        data: response.data.length > 0 ? response.data[0] : null,
-        headers: response.headers
-      };
-    }
-    return response;
-  }
-
-  /**
-   * Count records matching the criteria
-   * @returns {Promise<Object>} - Count of matching records with data and headers
-   */
-  async count() {
-    const response = await this.client.request({
-      method: 'get',
-      url: `/${this.resourceName}/count`,
-      params: this.criteria
-    });
-
-    if (response.data) {
-      return {
-        data: { count: response.data.count || 0 },
-        headers: response.headers
-      };
-    }
-
-    return response;
-  }
-}
-
-export default {{pascalCase resource.name}}Resource
