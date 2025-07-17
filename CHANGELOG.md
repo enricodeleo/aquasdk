@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.0](https://github.com/enricodeleo/aquasdk/compare/v2.0.0...v2.1.0) (2025-07-17)
+
+### Features
+
+* **generator:** Implement Waterline-style hierarchical API ([4df9ebe](https://github.com/enricodeleo/aquasdk/commit/4df9ebe535b9225c0de0555cebec27b40acbb068))
+
 ## 2.0.0 (2025-07-17)
 
 ### ⚠ BREAKING CHANGES
