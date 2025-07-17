@@ -88,10 +88,20 @@ function extractResources(api, apiWithRefs, verbose) {
         };
       }
 
-      // Extract parameters, requestBody, and responses
-      const parameters = operation.parameters || [];
-      const pathParams = parameters.filter(p => p.in === 'path').map(p => p.name);
-      const queryParams = parameters.filter(p => p.in === 'query').map(p => p.name);
+      const pathParams = (operation.parameters || [])
+        .filter(p => p.in === 'path')
+        .map(p => p.name);
+
+      // Also extract path parameters from the path itself
+      const pathRegex = /\{(\w+)\}/g;
+      let match;
+      while ((match = pathRegex.exec(path)) !== null) {
+        if (!pathParams.includes(match[1])) {
+          pathParams.push(match[1]);
+        }
+      }
+      
+      const queryParams = (operation.parameters || []).filter(p => p.in === 'query').map(p => p.name);
 
       let requestBodySchema = null;
       if (operation.requestBody && operation.requestBody.content) {
