@@ -8,7 +8,8 @@ async function main() {
   try {
     const { positionals, values } = parseArgs({
       options: {
-        verbose: { type: 'boolean', short: 'v' }
+        verbose: { type: 'boolean', short: 'v' },
+        strategy: { type: 'string', default: 'hierarchical' }
       },
       allowPositionals: true
     });
@@ -16,12 +17,13 @@ async function main() {
     const swaggerFile = positionals[0] || './swagger.json';
     const outputDir = positionals[1] || './sdk';
     const version = positionals[2] || '1.0.0';
-    const verbose = values.verbose || false;
+    const { verbose, strategy } = values;
 
     if (verbose) {
       console.log(`Parsing OpenAPI specification from ${swaggerFile}`);
       console.log(`Output directory: ${outputDir}`);
       console.log(`SDK Version: ${version}`);
+      console.log(`Resource strategy: ${strategy}`);
     }
 
     // Parse the OpenAPI specification
@@ -29,7 +31,7 @@ async function main() {
     const apiWithRefs = await SwaggerParser.resolve(swaggerFile);
 
     // Generate the SDK
-    await generateSdk(api, apiWithRefs, outputDir, version, verbose);
+    await generateSdk(api, apiWithRefs, outputDir, version, verbose, strategy);
 
     console.log(`✅ SDK successfully generated in ${outputDir}`);
   } catch (error) {

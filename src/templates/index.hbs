@@ -8,54 +8,29 @@
 
 import ApiClient from './client.js';
 {{#each resources}}
-import {{pascalCase name}}Resource from './resources/{{camelCase name}}.js';
+import {{#ifEquals strategy 'hierarchical'}}{{camelCase name}}{{else}}{{pascalCase name}}Resource{{/ifEquals}} from './resources/{{camelCase name}}.js';
 {{/each}}
 
-/**
-* SDK for {{apiInfo.title}}
-*/
 export class SDK {
-  /**
-  * Create a new SDK instance
-  * @param {Object} config - Configuration options
-  * @param {string} [config.baseUrl] - Base URL for API requests
-  * @param {Object} [config.headers] - Default headers for requests
-  * @param {Object} [config.auth] - Auth configuration {username, password} or {token}
-  */
   constructor(config = {}) {
-    // Initialize the API client
     this.client = new ApiClient(config);
 
-    // Initialize resources
     {{#each resources}}
-    this.{{camelCase name}} = new {{pascalCase name}}Resource(this.client);
+    this.{{camelCase name}} = {{#ifEquals strategy 'hierarchical'}}{{camelCase name}}(this.client){{else}}new {{pascalCase name}}Resource(this.client){{/ifEquals}};
     {{/each}}
   }
 
-  /**
-  * Set the authorization token for all future requests
-  * @param {string} token - Auth token
-  */
+
   setToken(token) {
     this.client.setToken(token);
     return this;
   }
 
-  /**
-  * Set basic authentication for all future requests
-  * @param {string} username
-  * @param {string} password
-  */
   setBasicAuth(username, password) {
     this.client.setBasicAuth(username, password);
     return this;
   }
 
-  /**
-  * Set a custom header for all future requests
-  * @param {string} name - Header name
-  * @param {string} value - Header value
-  */
   setHeader(name, value) {
     this.client.setHeader(name, value);
     return this;
