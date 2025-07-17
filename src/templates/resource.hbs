@@ -1,3 +1,89 @@
+{{#ifEquals strategy 'hierarchical'}}
+/**
+ * Resource factory for {{resource.name}}
+ * Generated: {{timestamp}}
+ */
+
+const factory = (client, parentPath = '') => {
+  const resource = (id) => {
+    const path = parentPath ? `${parentPath}/${id}` : `{{resource.name}}/${id}`;
+
+    return {
+      {{#if resource.operations.get}}
+      /**
+       * {{resource.operations.get.summary}}
+       * @param {object} [query] - Query parameters
+       */
+      get: (query = {}) => client.request({
+        method: '{{resource.operations.get.method}}',
+        url: `/${path}`,
+        params: query
+      }),
+      {{/if}}
+
+      {{#if resource.operations.update}}
+      /**
+       * {{resource.operations.update.summary}}
+       * @param {object} data - The data to update.
+       * @param {object} [query] - Query parameters
+       */
+      update: (data, query = {}) => client.request({
+        method: '{{resource.operations.update.method}}',
+        url: `/${path}`,
+        data,
+        params: query
+      }),
+      {{/if}}
+
+      {{#if resource.operations.destroy}}
+      /**
+       * {{resource.operations.destroy.summary}}
+       * @param {object} [query] - Query parameters
+       */
+      destroy: (query = {}) => client.request({
+        method: '{{resource.operations.destroy.method}}',
+        url: `/${path}`,
+        params: query
+      }),
+      {{/if}}
+
+      {{#each resource.subresources}}
+      {{@key}}: factory(client, `${path}/{{@key}}`),
+      {{/each}}
+    };
+  };
+
+  {{#if resource.operations.list}}
+  /**
+   * {{resource.operations.list.summary}}
+   * @param {object} [query] - Query parameters
+   */
+  resource.list = (query = {}) => client.request({
+    method: '{{resource.operations.list.method}}',
+    url: parentPath || '/{{resource.name}}',
+    params: query
+  });
+  {{/if}}
+
+  {{#if resource.operations.create}}
+  /**
+   * {{resource.operations.create.summary}}
+   * @param {object} data - The data to create.
+   * @param {object} [query] - Query parameters
+   */
+  resource.create = (data, query = {}) => client.request({
+    method: '{{resource.operations.create.method}}',
+    url: parentPath || '/{{resource.name}}',
+    data,
+    params: query
+  });
+  {{/if}}
+
+  return resource;
+};
+
+export default factory;
+{{else}}
 /**
  * {{pascalCase resource.name}} Resource
  * Generated: {{timestamp}}
@@ -10,75 +96,6 @@ export class {{pascalCase resource.name}}Resource {
    */
   constructor(client) {
     this.client = client;
-    this.resourcePath = '{{resource.name}}'; // Preserve the exact path name
-
-    // Make QueryChain methods available at the resource level
-    this.then = (resolve, reject) => this.find().execute().then(resolve, reject);
-  }
-
-  /**
-   * Starts a new query chain with the given criteria
-   * @param {Object} criteria - Filter criteria
-   * @returns {QueryChain} - Query chain for further operations
-   */
-  find(criteria = {}) {
-    return new QueryChain(this.client, this.resourcePath, criteria);
-  }
-
-  /**
-   * Find a single record by id
-   * @param {string|number} id - Record id
-   * @returns {QueryChain|Promise<Object>} - Query chain for further operations or found record with data and headers
-   */
-  findOne(id) {
-    const query = this.find({ id });
-
-    // Add a custom executeOne method that will be called when awaited
-    const originalThen = query.then;
-    query.then = (resolve, reject) => {
-      return query.executeOne().then(resolve, reject);
-    };
-
-    return query;
-  }
-
-  /**
-   * Create a new record
-   * @param {Object} data - Record data
-   * @returns {Promise<Object>} - Created record with data and headers
-   */
-  async create(data) {
-    return await this.client.request({
-      method: 'post',
-      url: `/${this.resourcePath}`,
-      data
-    });
-  }
-
-  /**
-   * Update a record by id
-   * @param {string|number} id - Record id
-   * @param {Object} data - Update data
-   * @returns {Promise<Object>} - Updated record with data and headers
-   */
-  async update(id, data) {
-    return await this.client.request({
-      method: 'patch',
-      url: `/${this.resourcePath}/${id}`,
-      data
-    });
-  }
-
-  /**
-   * Delete a record by id
-   * @param {string|number} id - Record id
-   * @returns {Promise<Object>} - Deletion result with data and headers
-   */
-  async destroy(id) {
-    return await this.client.request({
-      method: 'delete',
-      url: `/${this.resourcePath}/${id}`
-    });
   }
 
   {{#each resource.operations}}
@@ -113,147 +130,8 @@ export class {{pascalCase resource.name}}Resource {
       {{/if}}
     });
   }
-
   {{/each}}
 }
 
-/**
- * Query chain for waterline-like syntax
- */
-class QueryChain {
-  constructor(client, resourceName, criteria = {}) {
-    this.client = client;
-    this.resourceName = resourceName;
-    this.criteria = { ...criteria };
-    this.limitValue = null;
-    this.skipValue = 0;
-    this.sortValue = null;
-    this.selectFields = null;
-    this.populateFields = null;
-
-    // Make the QueryChain thenable
-    this.then = (resolve, reject) => this.execute().then(resolve, reject);
-  }
-
-  /**
-   * Set the maximum number of records to return
-   * @param {number} limit - Maximum number of records
-   * @returns {QueryChain} - This query chain
-   */
-  limit(limit) {
-    this.limitValue = limit;
-    return this;
-  }
-
-  /**
-   * Set the number of records to skip
-   * @param {number} skip - Number of records to skip
-   * @returns {QueryChain} - This query chain
-   */
-  skip(skip) {
-    this.skipValue = skip;
-    return this;
-  }
-
-  /**
-   * Set the fields to select
-   * @param {string[]} fields - Fields to select
-   * @returns {QueryChain} - This query chain
-   */
-  select(fields) {
-    this.selectFields = Array.isArray(fields) ? fields : [fields];
-    return this;
-  }
-
-  /**
-   * Set the sort order
-   * @param {Object|string} sort - Sort criteria
-   * @returns {QueryChain} - This query chain
-   */
-  sort(sort) {
-    this.sortValue = sort;
-    return this;
-  }
-
-  /**
-   * Specify fields to populate
-   * @param {string[]} fields - Fields to populate
-   * @returns {QueryChain} - This query chain
-   */
-  populate(fields) {
-    this.populateFields = Array.isArray(fields) ? fields : [fields];
-    return this;
-  }
-
-  /**
-   * Execute the query
-   * @returns {Promise<Object>} - Found records with data and headers
-   */
-  async execute() {
-    const queryParams = { ...this.criteria };
-
-    if (this.limitValue !== null) {
-      queryParams.limit = this.limitValue;
-    }
-
-    if (this.skipValue > 0) {
-      queryParams.skip = this.skipValue;
-    }
-
-    if (this.sortValue) {
-      queryParams.sort = this.sortValue;
-    }
-
-    if (this.selectFields) {
-      queryParams.select = this.selectFields.join(',');
-    }
-
-    if (this.populateFields) {
-      queryParams.populate = this.populateFields.join(',');
-    }
-
-    return await this.client.request({
-      method: 'get',
-      url: `/${this.resourceName}`,
-      params: queryParams
-    });
-  }
-
-  /**
-   * Execute the query and return a single record
-   * @returns {Promise<Object>} - Found record with data and headers
-   */
-  async executeOne() {
-    const response = await this.limit(1).execute();
-    if (response.data && Array.isArray(response.data)) {
-      return {
-        data: response.data.length > 0 ? response.data[0] : null,
-        headers: response.headers
-      };
-    }
-    return response;
-  }
-
-  /**
-   * Count records matching the criteria
-   * @returns {Promise<Object>} - Count of matching records with data and headers
-   */
-  async count() {
-    const response = await this.client.request({
-      method: 'get',
-      url: `/${this.resourceName}/count`,
-      params: this.criteria
-    });
-
-    if (response.data) {
-      return {
-        data: { count: response.data.count || 0 },
-        headers: response.headers
-      };
-    }
-
-    return response;
-  }
-}
-
-export default {{pascalCase resource.name}}Resource
+export default {{pascalCase resource.name}}Resource;
+{{/ifEquals}}

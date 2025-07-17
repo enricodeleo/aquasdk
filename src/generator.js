@@ -15,7 +15,11 @@ Handlebars.registerHelper('pascalCase', function(str) {
   return pascalCase(str);
 });
 
-export async function generateSdk(api, apiWithRefs, outputDir, version, verbose) {
+Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
+  return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+});
+
+export async function generateSdk(api, apiWithRefs, outputDir, version, verbose, strategy = 'hierarchical') {
   // Ensure output directory exists
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -32,16 +36,19 @@ export async function generateSdk(api, apiWithRefs, outputDir, version, verbose)
   }
 
   // Generate resources and models from paths and schemas
-  const resources = extractResources(api, apiWithRefs, verbose);
+  const resources = strategy === 'hierarchical'
+    ? extractResourcesHierarchical(api, apiWithRefs, verbose)
+    : extractResourcesByTag(api, apiWithRefs, verbose);
+  
   const models = extractModels(api, apiWithRefs, verbose);
 
   // Generate the SDK files
-  await generateIndexFile(apiInfo, resources, outputDir, verbose);
+  await generateIndexFile(apiInfo, resources, outputDir, verbose, strategy);
   await generateClientFile(apiInfo, outputDir, verbose);
-  await generateResourceFiles(resources, outputDir, verbose);
+  await generateResourceFiles(resources, outputDir, verbose, strategy);
   await generateModelFiles(models, outputDir, verbose);
   await generatePackageJson(apiInfo, outputDir, verbose);
-  await generateReadmeFile(apiInfo, resources, outputDir, verbose);
+  await generateReadmeFile(apiInfo, resources, outputDir, verbose, strategy);
   await copyTemplateFiles(outputDir, verbose);
 
   if (verbose) {
@@ -56,7 +63,7 @@ function getBaseUrl(api) {
   return 'http://localhost';
 }
 
-function extractResources(api, apiWithRefs, verbose) {
+function extractResourcesByTag(api, apiWithRefs, verbose) {
   const resources = {};
 
   // Group operations by resource (first tag or derived from path)
@@ -148,6 +155,101 @@ function extractResources(api, apiWithRefs, verbose) {
   return resources;
 }
 
+function extractResourcesHierarchical(api, apiWithRefs, verbose) {
+  const resourceTree = {};
+
+  // Helper to get or create a node in the tree
+  const getNode = (path) => {
+    let current = resourceTree;
+    for (const part of path) {
+      if (!current[part]) {
+        current[part] = {
+          name: part,
+          operations: {},
+          subresources: {}
+        };
+      }
+      current = current[part].subresources;
+    }
+    return current;
+  };
+
+  for (const [path, pathItem] of Object.entries(api.paths)) {
+    const segments = path.split('/').filter(Boolean);
+    const resourcePath = segments.filter(s => !s.startsWith('{'));
+    const parentNode = getNode(resourcePath.slice(0, -1));
+    const resourceName = resourcePath.slice(-1)[0];
+
+    if (!parentNode[resourceName]) {
+      parentNode[resourceName] = {
+        name: resourceName,
+        operations: {},
+        subresources: {}
+      };
+    }
+    const resourceNode = parentNode[resourceName];
+
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!['get', 'post', 'put', 'delete', 'patch'].includes(method)) {
+        continue;
+      }
+
+      const pathParams = (operation.parameters || [])
+        .filter(p => p.in === 'path')
+        .map(p => p.name);
+      
+      const pathRegex = /\{(\w+)\}/g;
+      let match;
+      while ((match = pathRegex.exec(path)) !== null) {
+        if (!pathParams.includes(match[1])) {
+          pathParams.push(match[1]);
+        }
+      }
+
+      const queryParams = (operation.parameters || []).filter(p => p.in === 'query').map(p => p.name);
+      const hasRequestBody = !!(operation.requestBody && operation.requestBody.content);
+      let returnType = 'void';
+      if (operation.responses && operation.responses['200'] && operation.responses['200'].content) {
+        const contentType = Object.keys(operation.responses['200'].content)[0];
+        if (contentType && operation.responses['200'].content[contentType].schema) {
+          returnType = getResponseType(operation.responses['200'].content[contentType].schema);
+        }
+      }
+
+      const operationId = operation.operationId || `${method}${pascalCase(path.replace(/[{}]/g, ''))}`;
+      
+      // Determine operation type (e.g., list, create, get, update, delete)
+      const isEntityPath = path.endsWith('}');
+      let opType;
+      if (method === 'get' && !isEntityPath) opType = 'list';
+      else if (method === 'get' && isEntityPath) opType = 'get';
+      else if (method === 'post' && !isEntityPath) opType = 'create';
+      else if (method === 'put' || method === 'patch') opType = 'update';
+      else if (method === 'delete' && isEntityPath) opType = 'destroy';
+      else opType = camelCase(operationId);
+
+
+      resourceNode.operations[opType] = {
+        id: operationId,
+        summary: operation.summary || '',
+        description: operation.description || '',
+        method,
+        path,
+        pathParams,
+        queryParams,
+        hasRequestBody,
+        returnType
+      };
+    }
+  }
+
+  if (verbose) {
+    console.log('Extracted resources:', JSON.stringify(resourceTree, null, 2));
+  }
+
+  return resourceTree;
+}
+
 function extractModels(api, apiWithRefs, verbose) {
   const models = {};
 
@@ -228,7 +330,7 @@ function getResponseType(schema) {
   return schema.type || 'any';
 }
 
-async function generateIndexFile(apiInfo, resources, outputDir, verbose) {
+async function generateIndexFile(apiInfo, resources, outputDir, verbose, strategy) {
   if (verbose) {
     console.log('Generating index.js file...');
   }
@@ -238,7 +340,8 @@ async function generateIndexFile(apiInfo, resources, outputDir, verbose) {
 
   const content = compiledTemplate({
     apiInfo,
-    resources: Object.values(resources),
+    resources: Object.values(resources), // Pass top-level resources
+    strategy,
     timestamp: new Date().toISOString()
   });
 
@@ -261,30 +364,59 @@ async function generateClientFile(apiInfo, outputDir, verbose) {
   await fs.writeFile(path.join(outputDir, 'client.js'), content);
 }
 
-async function generateResourceFiles(resources, outputDir, verbose) {
+async function generateResourceFiles(resources, outputDir, verbose, strategy) {
   if (verbose) {
     console.log('Generating resource files...');
   }
 
-  // Create resources directory
   const resourcesDir = path.join(outputDir, 'resources');
   await fs.mkdir(resourcesDir, { recursive: true });
 
   const template = await fs.readFile(path.join(__dirname, 'templates', 'resource.hbs'), 'utf8');
   const compiledTemplate = Handlebars.compile(template);
 
-  // Generate a file for each resource
-  for (const [resourceName, resource] of Object.entries(resources)) {
-    if (verbose) {
-      console.log(`Generating resource file for ${resourceName}...`);
+  async function generateHierarchical(node, p) {
+    for (const [resourceName, resource] of Object.entries(node)) {
+      if (verbose) {
+        console.log(`Generating hierarchical resource file for ${resourceName}...`);
+      }
+
+      const content = compiledTemplate({
+        resource,
+        strategy,
+        timestamp: new Date().toISOString()
+      });
+
+      await fs.writeFile(path.join(p, `${camelCase(resourceName)}.js`), content);
+
+      if (Object.keys(resource.subresources || {}).length > 0) {
+        const subDir = path.join(p, camelCase(resourceName));
+        await fs.mkdir(subDir, { recursive: true });
+        await generateHierarchical(resource.subresources, subDir);
+      }
     }
+  }
 
-    const content = compiledTemplate({
-      resource,
-      timestamp: new Date().toISOString()
-    });
+  async function generateTags(resources, p) {
+    for (const [resourceName, resource] of Object.entries(resources)) {
+      if (verbose) {
+        console.log(`Generating tag-based resource file for ${resourceName}...`);
+      }
+      
+      const content = compiledTemplate({
+        resource,
+        strategy,
+        timestamp: new Date().toISOString()
+      });
 
-    await fs.writeFile(path.join(resourcesDir, `${camelCase(resourceName)}.js`), content);
+      await fs.writeFile(path.join(p, `${camelCase(resourceName)}.js`), content);
+    }
+  }
+
+  if (strategy === 'hierarchical') {
+    await generateHierarchical(resources, resourcesDir);
+  } else {
+    await generateTags(resources, resourcesDir);
   }
 }
 
