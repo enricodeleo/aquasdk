@@ -103,7 +103,7 @@ export class {{pascalCase resource.name}}Resource {
   async {{camelCase id}}({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data{{#if queryParams.length}}, {{/if}}{{/if}}{{#if queryParams.length}}query = {}{{/if}}) {
     let url = '{{path}}'
       {{#each pathParams}}
-      .replace('{{{this}}}', encodeURIComponent({{this}}))
+      .replace('{ {{{this}}} }', encodeURIComponent({{this}}))
       {{/each}};
 
     return await this.client.request({
