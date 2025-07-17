@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0 (2025-07-17)
+
+### Features
+
+*   **generator:** Implement factory pattern for full sub-resource support. The generator now creates callable resource functions that provide an intuitive, Waterline-style interface for both top-level operations and nested sub-resources (e.g., `api.companies(id).people.find()`).
+*   **QueryBuilder:** The generated SDK now includes a powerful `QueryBuilder` that makes queries "thenable," allowing for direct use of `await` on chained methods without needing an explicit `.execute()` call.
+
+### Bug Fixes
+
+*   **generator:** Correctly differentiate between static endpoints (e.g., `/users/me`) and true sub-resources, resolving a critical bug where methods were not attached to the correct resource object.
+*   **generator:** Ensure `operationId` from the OpenAPI specification is always respected, preserving the intended casing for function names (e.g., `getUsersMe`).
+*   **client:** The API client now returns the full, unmodified Axios response object on success, preventing errors when handling responses with no content (e.g., `204 No Content`).
+*   **QueryBuilder:** The `where` parameter is now omitted from the final query string if it is empty, preventing unnecessary `?where={}` clauses.
+
 ## [1.8.2](https://github.com/enricodeleo/aquasdk/compare/v1.8.1...v1.8.2) (2025-03-31)
 
 ### Bug Fixes

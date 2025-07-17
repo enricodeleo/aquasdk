@@ -69,7 +69,7 @@ generate-sdk ./swagger.json ./sdk 1.0.0 --verbose
 
 The generated SDK includes the following features:
 
-- **Waterline-like Syntax**: Chainable query methods for interacting with your API, similar to Sails.js/Waterline. Brings ORM-style chaining (`.find()`, `.limit()`, `.sort()`) to REST API calls, making client-side code more expressive.
+- **Support for Sub-Resources**: Access nested resources with an intuitive, chainable syntax (e.g., `api.companies(id).people.find()`).
 - **Thenable Queries**: Await queries directly without needing an `.execute()` call, leading to cleaner, more intuitive code.
 - **OpenAPI-Driven Development**: Automates SDK generation from specs, reducing human error and ensuring alignment with API contracts.
 - **Promise-based API**: All API calls return promises, making them compatible with `async/await`.
@@ -120,12 +120,16 @@ async function examples() {
     .populate('company')
     .sort('createdAt DESC');
 
+  // Access sub-resources
+  const companyId = 'comp_123';
+  const companyPeople = await api.companies(companyId).people.find();
+
   // Advanced query with pagination and field selection
   const paginatedAdmins = await api.users
     .find({ role: 'admin' })
     .limit(10)
     .skip(20)
-    .select(['name', 'lastLogin']);
+    "select(['name', 'lastLogin']);
 
   // Create a new user
   const newUser = await api.users.create({
