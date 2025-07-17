@@ -345,80 +345,17 @@ async function generateReadmeFile(apiInfo, resources, outputDir, verbose) {
 
   const exampleResourceName = exampleResource ? camelCase(exampleResource.name) : 'resourceName';
 
-  // Simple README content
-  const readmeContent = `# ${apiInfo.title} - JavaScript SDK
+  const template = await fs.readFile(path.join(__dirname, 'templates', 'readme.hbs'), 'utf8');
+  const compiledTemplate = Handlebars.compile(template);
 
-${apiInfo.description}
-
-## Installation
-
-\`\`\`bash
-npm install ${camelCase(apiInfo.title)}-sdk
-\`\`\`
-
-## Basic Usage
-
-\`\`\`javascript
-import API from '${camelCase(apiInfo.title)}-sdk';
-
-// Initialize the SDK
-const api = new API({
-  baseUrl: '${apiInfo.baseUrl}',
-  auth: {
-    token: 'your-auth-token'
-    // Or use basic auth
-    // username: 'user',
-    // password: 'pass'
-  }
-});
-
-// Examples using Waterline-like syntax
-async function examples() {
-  // Find all records
-  const allRecords = await api.${exampleResourceName}.find().execute();
-
-  // Find with criteria
-  const filteredRecords = await api.${exampleResourceName}
-    .find({ field: 'value' })
-    .execute();
-
-  // Find with pagination and sorting
-  const paginatedRecords = await api.${exampleResourceName}
-    .find()
-    .limit(10)
-    .skip(20)
-    .sort('createdAt DESC')
-    .execute();
-
-  // Find one by ID
-  const record = await api.${exampleResourceName}.findOne(123);
-
-  // Create a record
-  const newRecord = await api.${exampleResourceName}.create({
-    field1: 'value1',
-    field2: 'value2'
+  const content = compiledTemplate({
+    apiInfo,
+    exampleResourceName,
+    resourceNames: Object.keys(resources).map(name => camelCase(name)),
+    timestamp: new Date().toISOString()
   });
 
-  // Update a record
-  const updatedRecord = await api.${exampleResourceName}.update(123, {
-    field1: 'updated value'
-  });
-
-  // Delete a record
-  await api.${exampleResourceName}.destroy(123);
-}
-\`\`\`
-
-## Available Resources
-
-${Object.keys(resources).map(name => `- \`${camelCase(name)}\``).join('\n')}
-
-## SDK Version
-
-\`${apiInfo.version}\`
-`;
-
-  await fs.writeFile(path.join(outputDir, 'README.md'), readmeContent);
+  await fs.writeFile(path.join(outputDir, 'README.md'), content);
 }
 
 async function copyTemplateFiles(outputDir, verbose) {

@@ -8,6 +8,12 @@
 npm install {{camelCase apiInfo.title}}-sdk
 ```
 
+## Available Resources
+
+{{#each resourceNames}}
+- `{{this}}`
+{{/each}}
+
 ## Basic Usage
 
 ```javascript
@@ -41,43 +47,68 @@ const api = new API({
 // Examples using the Waterline-like syntax
 async function examples() {
   // Find all records
-  const allRecords = await api.resourceName.find().execute();
+  const allRecordsResponse = await api.{{exampleResourceName}}.find().execute();
+  const allRecords = allRecordsResponse.data;
 
   // Find with criteria
-  const filteredRecords = await api.resourceName
+  const filteredRecordsResponse = await api.{{exampleResourceName}}
     .find({ field: 'value' })
     .execute();
+  const filteredRecords = filteredRecordsResponse.data;
 
   // With pagination and sorting
-  const paginatedRecords = await api.resourceName
+  const paginatedRecordsResponse = await api.{{exampleResourceName}}
     .find()
     .limit(10)
     .skip(20)
     .sort('createdAt DESC')
     .execute();
+  const paginatedRecords = paginatedRecordsResponse.data;
 
-  // Find one by ID
-  const record = await api.resourceName.findOne(123);
+  // Find one by ID with optional populate
+  const recordResponse = await api.{{exampleResourceName}}.findOne(123).populate(['field1', 'field2']);
+  const record = recordResponse.data;
 
   // Create a record
-  const newRecord = await api.resourceName.create({
+  const newRecordResponse = await api.{{exampleResourceName}}.create({
     field1: 'value1',
     field2: 'value2'
   });
+  const newRecord = newRecordResponse.data;
 
   // Update a record
-  const updatedRecord = await api.resourceName.update(123, {
+  const updatedRecordResponse = await api.{{exampleResourceName}}.update(123, {
     field1: 'updated value'
   });
+  const updatedRecord = updatedRecordResponse.data;
 
   // Delete a record
-  await api.resourceName.destroy(123);
+  const deleteResponse = await api.{{exampleResourceName}}.destroy(123);
+
+  // Count records matching criteria
+  const countResponse = await api.{{exampleResourceName}}.find({ field: 'value' }).count();
+  const count = countResponse.data.count;
+
+  // Access response headers (e.g., for any method)
+  console.log('Response headers:', allRecordsResponse.headers);
 }
+```
+
+## Custom Operations and Sub-resources
+
+For specialized endpoints, including sub-resources (e.g., `/resource/{id}/subresource`), custom methods are generated on the parent resource class based on the OpenAPI paths. These methods are named using the operationId or derived from the method and path (e.g., `getResourceIdSubresource`).
+
+Check the generated resource files (in `resources/`) or JSDoc for available custom methods and their parameters.
+
+Example (assuming a sub-resource method):
+```javascript
+const subresourceResponse = await api.{{exampleResourceName}}.getIdSubresource({ id: 123, queryParam: 'value' });
+const subresource = subresourceResponse.data;
 ```
 
 ## SDK Documentation
 
-For detailed API documentation, refer to the JSDoc generated documentation.
+For detailed API documentation, refer to the JSDoc in the generated resource and model files.
 
 ## SDK Version
 
