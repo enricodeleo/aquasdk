@@ -84,7 +84,7 @@ export class QueryBuilder {
     return this.client.request({
       method: this.method,
       url: finalPath,
-      params: finalParams,
+      params: finalParams
     });
   }
 

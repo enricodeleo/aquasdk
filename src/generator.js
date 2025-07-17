@@ -68,7 +68,7 @@ function extractResources(api, apiWithRefs, verbose) {
       resources[resourceName] = {
         name: resourceName,
         operations: [],
-        subResources: {},
+        subResources: {}
       };
     }
 
@@ -91,7 +91,7 @@ function extractResources(api, apiWithRefs, verbose) {
           targetResource.subResources[currentSegment] = {
             name: currentSegment,
             operations: [],
-            subResources: {},
+            subResources: {}
           };
         }
         targetResource = targetResource.subResources[currentSegment];
@@ -131,7 +131,7 @@ function extractResources(api, apiWithRefs, verbose) {
         queryParams,
         hasRequestBody: !!requestBodySchema,
         hasResponseBody: false,
-        returnType: 'void',
+        returnType: 'void'
       };
 
       if (operation.responses && operation.responses['200']) {
@@ -189,15 +189,7 @@ function extractModels(api, apiWithRefs, verbose) {
   return models;
 }
 
-function deriveResourceNameFromPath(path) {
-  // Extract resource name from the path - preserving as-is
-  const parts = path.split('/').filter(Boolean);
-  if (parts.length > 0) {
-    // Keep the path segment exactly as it appears in the URL
-    return parts[0];
-  }
-  return 'api';
-}
+
 
 function getPropertyType(schema) {
   if (schema.$ref) {
