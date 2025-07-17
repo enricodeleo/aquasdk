@@ -1,38 +1,103 @@
 import { QueryBuilder } from '../utils/queryUtils.js';
 
 /**
- * {{pascalCase resource.name}} Resource
- * Generated: {{timestamp}}
+ * Creates a factory for a sub-resource, making it callable and chainable.
+ * @param {ApiClient} client - The API client instance.
+ * @param {string} parentPath - The base path of the parent resource.
+ * @param {object} subResource - The sub-resource definition from the OpenAPI spec.
+ * @returns {function} A callable factory function for the sub-resource.
+ * @private
  */
-export default class {{pascalCase resource.name}}Resource {
+const subResourceFactory = (client, parentPath, subResource) => {
   /**
-   * Create a new {{pascalCase resource.name}} resource
-   * @param {ApiClient} client - API client instance
+   * @param {string|number} id - The ID of the parent resource.
+   * @returns {object} An object containing the next level of sub-resources.
    */
-  constructor(client) {
-    this.client = client;
-  }
+  const factory = (id) => {
+    const newPath = `${parentPath}/${id}/${subResource.name}`;
+    const subResources = {};
+    for (const [key, value] of Object.entries(subResource.subResources)) {
+      subResources[key] = subResourceFactory(client, newPath, value);
+    }
+    return subResources;
+  };
 
+  // Attach operations directly to the factory
+  for (const op of subResource.operations) {
+    /**
+     * {{op.summary}}
+     * @param {object} [params] - The parameters for the operation.
+     * @param {object} [params.query] - The query parameters.
+     * @param {object} [params.data] - The request body.
+     {{#each op.pathParams}}
+     * @param {string|number} params.{{this}} - Path parameter.
+     {{/each}}
+     * @returns {Promise<any>}
+     */
+    factory[op.id] = (params = {}) => {
+      let path = op.path;
+      const pathParams = op.pathParams || [];
+      const bodyParams = op.hasRequestBody ? params.data : undefined;
+      
+      for(const p of pathParams) {
+          if(params[p]) {
+              path = path.replace(`{${p}}`, params[p]);
+          }
+      }
+
+      return client.request({
+        method: op.method,
+        url: path,
+        params: params.query,
+        data: bodyParams,
+      });
+    };
+  }
+  
+  return factory;
+};
+
+/**
+ * Creates a factory for the {{pascalCase resource.name}} resource.
+ * This factory produces a function that is both callable for sub-resources
+ * and has methods for top-level resource operations.
+ * @param {ApiClient} client - The API client instance.
+ * @returns {function} A callable resource function.
+ */
+export default function {{pascalCase resource.name}}Factory(client) {
   /**
-   * Starts a new query for finding records.
-   * @param {Object} [criteria] - The criteria to filter records.
+   * Access sub-resources of a specific {{resource.name}} instance.
+   * @param {string|number} id - The ID of the {{resource.name}} instance.
+   * @returns {object} An object containing the sub-resources.
+   */
+  const resourceFn = (id) => {
+    const subResources = {};
+    for (const [key, value] of Object.entries(resource.subResources)) {
+      subResources[key] = subResourceFactory(client, `/${resource.name}/${id}`, value);
+    }
+    return subResources;
+  };
+  
+  /**
+   * Starts a new query for finding {{resource.name}} records.
+   * @param {object} [criteria] - The criteria to filter records.
    * @returns {QueryBuilder} A QueryBuilder instance.
    */
-  find(criteria) {
+  resourceFn.find = (criteria) => {
     return new QueryBuilder({
-      client: this.client,
+      client,
       method: 'get',
       path: '/{{resource.name}}',
       criteria,
     });
-  }
+  };
 
   /**
-   * Starts a new query for finding a single record.
-   * @param {string|number|Object} [criteria] - The ID or criteria to find a single record.
+   * Starts a new query for finding a single {{resource.name}} record.
+   * @param {string|number|object} [criteria] - The ID or criteria to find a single record.
    * @returns {QueryBuilder} A QueryBuilder instance that resolves to a single object.
    */
-  findOne(criteria) {
+  resourceFn.findOne = (criteria) => {
     const path = (typeof criteria === 'string' || typeof criteria === 'number')
       ? '/{{resource.name}}/{id}'
       : '/{{resource.name}}';
@@ -40,7 +105,7 @@ export default class {{pascalCase resource.name}}Resource {
     const filter = (typeof criteria === 'object' && criteria !== null) ? criteria : { id: criteria };
 
     const qb = new QueryBuilder({
-      client: this.client,
+      client,
       method: 'get',
       path: path,
       criteria: filter,
@@ -49,7 +114,6 @@ export default class {{pascalCase resource.name}}Resource {
     // Ensure findOne resolves to a single object, not an array
     const originalExecute = qb.execute;
     qb.execute = async function() {
-      // If it's not a path-based ID lookup, enforce limit(1)
       if (!path.includes('/{id}')) {
         this.limit(1);
       }
@@ -64,69 +128,69 @@ export default class {{pascalCase resource.name}}Resource {
     };
     
     return qb;
-  }
+  };
 
   /**
-   * Creates a new record.
-   * @param {Object} data - The data for the new record.
+   * Creates a new {{resource.name}} record.
+   * @param {object} data - The data for the new record.
    * @returns {Promise<any>} A promise that resolves with the created record.
    */
-  create(data) {
-    return this.client.request({
+  resourceFn.create = (data) => {
+    return client.request({
       method: 'post',
       url: '/{{resource.name}}',
       data,
     });
-  }
+  };
 
   /**
-   * Updates a record by its ID.
+   * Updates a {{resource.name}} record by its ID.
    * @param {string|number} id - The ID of the record to update.
-   * @param {Object} data - The data to update the record with.
+   * @param {object} data - The data to update the record with.
    * @returns {Promise<any>} A promise that resolves with the updated record.
    */
-  update(id, data) {
-    return this.client.request({
+  resourceFn.update = (id, data) => {
+    return client.request({
       method: 'patch',
       url: `/{{resource.name}}/${id}`,
       data,
     });
-  }
+  };
 
   /**
-   * Destroys a record by its ID.
+   * Destroys a {{resource.name}} record by its ID.
    * @param {string|number} id - The ID of the record to destroy.
    * @returns {Promise<any>} A promise that resolves when the record is destroyed.
    */
-  destroy(id) {
-    return this.client.request({
+  resourceFn.destroy = (id) => {
+    return client.request({
       method: 'delete',
       url: `/{{resource.name}}/${id}`,
     });
-  }
+  };
 
   {{#each resource.operations}}
   /**
    * {{summary}}
    * {{description}}
    {{#each pathParams}}
-   * @param {string} {{this}} - Path parameter
+   * @param {string|number} {{this}} - Path parameter.
    {{/each}}
    {{#if hasRequestBody}}
-   * @param {Object} data - Request body
+   * @param {object} data - Request body.
    {{/if}}
    {{#if queryParams.length}}
-   * @param {Object} [query] - Query parameters
+   * @param {object} [query] - Query parameters.
    {{/if}}
-   * @returns {Promise<{{returnType}}>} - Response with data and headers
+   * @returns {Promise<{{returnType}}>}
    */
-  async {{camelCase id}}({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data{{#if queryParams.length}}, {{/if}}{{/if}}{{#if queryParams.length}}query = {}{{/if}}) {
-    let url = '{{path}}'
-      {{#each pathParams}}
-      .replace('{{{this}}}', encodeURIComponent({{this}}))
-      {{/each}};
+  resourceFn.{{camelCase id}} = ({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data, {{/if}}{{#if queryParams.length}}query = {}{{/if}}) => {
+    let url = '{{path}}';
+    {{#each pathParams}}
+    url = url.replace('{{"{"}}{{this}}{{"}"}}', encodeURIComponent({{this}}));
+    {{/each}}
 
-    return await this.client.request({
+    return client.request({
       method: '{{method}}',
       url,
       {{#if queryParams.length}}
@@ -136,7 +200,9 @@ export default class {{pascalCase resource.name}}Resource {
       data,
       {{/if}}
     });
-  }
+  };
   {{/each}}
+
+  return resourceFn;
 }
 

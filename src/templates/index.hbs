@@ -8,7 +8,7 @@
 
 import ApiClient from './client.js';
 {{#each resources}}
-import {{pascalCase name}}Resource from './resources/{{camelCase name}}.js';
+import {{pascalCase name}}Factory from './resources/{{camelCase name}}.js';
 {{/each}}
 
 /**
@@ -28,7 +28,7 @@ export class SDK {
 
     // Initialize resources
     {{#each resources}}
-    this.{{camelCase name}} = new {{pascalCase name}}Resource(this.client);
+    this.{{camelCase name}} = {{pascalCase name}}Factory(this.client);
     {{/each}}
   }
 

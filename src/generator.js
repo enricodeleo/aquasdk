@@ -59,36 +59,50 @@ function getBaseUrl(api) {
 function extractResources(api, apiWithRefs, verbose) {
   const resources = {};
 
-  // Group operations by resource (first tag or derived from path)
   for (const [path, pathItem] of Object.entries(api.paths)) {
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length === 0) continue;
+
+    // The top-level resource is always the first segment.
+    const resourceName = segments[0];
+    if (!resources[resourceName]) {
+      resources[resourceName] = {
+        name: resourceName,
+        operations: [],
+        subResources: {},
+      };
+    }
+
+    let targetResource = resources[resourceName];
+
+    // Traverse path to find the correct resource/sub-resource to attach the operation to.
+    // A sub-resource is a segment that follows a parameter segment.
+    for (let i = 1; i < segments.length; i++) {
+      const prevSegment = segments[i - 1];
+      const currentSegment = segments[i];
+
+      if (prevSegment.startsWith('{')) {
+        // The previous segment was a parameter, so the current one is a sub-resource.
+        if (!targetResource.subResources[currentSegment]) {
+          targetResource.subResources[currentSegment] = {
+            name: currentSegment,
+            operations: [],
+            subResources: {},
+          };
+        }
+        targetResource = targetResource.subResources[currentSegment];
+      } else if (currentSegment.startsWith('{')) {
+        // This is a parameter of an already identified sub-resource path, just continue.
+        continue;
+      }
+    }
+
+    // Now, create the operation and add it to the determined targetResource
     for (const [method, operation] of Object.entries(pathItem)) {
       if (!['get', 'post', 'put', 'delete', 'patch'].includes(method)) {
         continue;
       }
 
-      // Get resource name - prioritize first tag, but preserve path segment exactly as-is
-      let resourceName;
-      if (operation.tags && operation.tags.length > 0) {
-        // Use tag but keep the path's case/plural form
-        const tagName = operation.tags[0];
-        // Extract the first non-empty path segment (skipping the leading slash)
-        const pathSegment = path.split('/').filter(Boolean)[0];
-
-        // If we have a valid path segment, use it, otherwise fallback to tag
-        resourceName = pathSegment || tagName;
-      } else {
-        // Extract directly from path
-        resourceName = path.split('/').filter(Boolean)[0] || 'api';
-      }
-
-      if (!resources[resourceName]) {
-        resources[resourceName] = {
-          name: resourceName,
-          operations: []
-        };
-      }
-
-      // Extract parameters, requestBody, and responses
       const parameters = operation.parameters || [];
       const pathParams = parameters.filter(p => p.in === 'path').map(p => p.name);
       const queryParams = parameters.filter(p => p.in === 'query').map(p => p.name);
@@ -101,9 +115,8 @@ function extractResources(api, apiWithRefs, verbose) {
         }
       }
 
-      // Build operation object
       const operationObj = {
-        id: operation.operationId || `${method}${pascalCase(path.replace(/[{}]/g, ''))}`,
+        id: operation.operationId || `${method}${pascalCase(path.replace(/[\/{}]/g, ''))}`,
         summary: operation.summary || '',
         description: operation.description || '',
         method,
@@ -112,10 +125,9 @@ function extractResources(api, apiWithRefs, verbose) {
         queryParams,
         hasRequestBody: !!requestBodySchema,
         hasResponseBody: false,
-        returnType: 'void'
+        returnType: 'void',
       };
 
-      // Check for response schema
       if (operation.responses && operation.responses['200']) {
         const response = operation.responses['200'];
         if (response.content) {
@@ -126,8 +138,8 @@ function extractResources(api, apiWithRefs, verbose) {
           }
         }
       }
-
-      resources[resourceName].operations.push(operationObj);
+      
+      targetResource.operations.push(operationObj);
     }
   }
 
