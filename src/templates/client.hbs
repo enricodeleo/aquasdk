@@ -87,19 +87,14 @@ export class ApiClient {
   */
   async request(config) {
     try {
-      const response = await this.axios(config);
-      return {
-        data: response.data,
-        headers: response.headers
-      };
+      // Return the full response object on success
+      return await this.axios(config);
     } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         const apiError = new Error(`API Error: ${error.response.status} ${error.response.statusText}`);
-        apiError.status = error.response.status;
-        apiError.data = error.response.data;
-        apiError.headers = error.response.headers;
+        apiError.response = error.response; // Attach the full response to the error
         throw apiError;
       } else if (error.request) {
         // The request was made but no response was received

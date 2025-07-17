@@ -63,7 +63,6 @@ function extractResources(api, apiWithRefs, verbose) {
     const segments = path.split('/').filter(Boolean);
     if (segments.length === 0) continue;
 
-    // The top-level resource is always the first segment.
     const resourceName = segments[0];
     if (!resources[resourceName]) {
       resources[resourceName] = {
@@ -75,14 +74,19 @@ function extractResources(api, apiWithRefs, verbose) {
 
     let targetResource = resources[resourceName];
 
-    // Traverse path to find the correct resource/sub-resource to attach the operation to.
-    // A sub-resource is a segment that follows a parameter segment.
+    // Traverse the path segments to find the correct resource or sub-resource
+    // to attach the current operation to.
     for (let i = 1; i < segments.length; i++) {
       const prevSegment = segments[i - 1];
       const currentSegment = segments[i];
 
+      if (currentSegment.startsWith('{')) {
+        // The current segment is a parameter, so we don't change the target resource yet.
+        continue;
+      }
+
       if (prevSegment.startsWith('{')) {
-        // The previous segment was a parameter, so the current one is a sub-resource.
+        // The current segment follows a parameter, so it's a sub-resource.
         if (!targetResource.subResources[currentSegment]) {
           targetResource.subResources[currentSegment] = {
             name: currentSegment,
@@ -91,9 +95,11 @@ function extractResources(api, apiWithRefs, verbose) {
           };
         }
         targetResource = targetResource.subResources[currentSegment];
-      } else if (currentSegment.startsWith('{')) {
-        // This is a parameter of an already identified sub-resource path, just continue.
-        continue;
+      } else {
+        // The current segment follows a static segment. This means the operation
+        // belongs to the parent resource, and the rest of the path is part of
+        // the operation's unique identity. We stop traversing here.
+        break;
       }
     }
 
@@ -116,7 +122,7 @@ function extractResources(api, apiWithRefs, verbose) {
       }
 
       const operationObj = {
-        id: operation.operationId || `${method}${pascalCase(path.replace(/[\/{}]/g, ''))}`,
+        id: operation.operationId || camelCase(`${method} ${path.replace(/[\/{}]/g, ' ')}`),
         summary: operation.summary || '',
         description: operation.description || '',
         method,

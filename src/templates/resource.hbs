@@ -184,7 +184,7 @@ export default function {{pascalCase resource.name}}Factory(client) {
    {{/if}}
    * @returns {Promise<{{returnType}}>}
    */
-  resourceFn.{{camelCase id}} = ({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data, {{/if}}{{#if queryParams.length}}query = {}{{/if}}) => {
+  resourceFn.{{id}} = ({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data, {{/if}}{{#if queryParams.length}}query = {}{{/if}}) => {
     let url = '{{path}}';
     {{#each pathParams}}
     url = url.replace('{{"{"}}{{this}}{{"}"}}', encodeURIComponent({{this}}));
