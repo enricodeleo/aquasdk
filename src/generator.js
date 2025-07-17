@@ -218,11 +218,11 @@ function extractResourcesHierarchical(api, apiWithRefs, verbose) {
 
       const operationId = operation.operationId || `${method}${pascalCase(path.replace(/[{}]/g, ''))}`;
       
-      // Determine operation type (e.g., list, create, get, update, delete)
+      // Determine operation type (e.g., find, findOne, create, update, destroy)
       const isEntityPath = path.endsWith('}');
       let opType;
-      if (method === 'get' && !isEntityPath) opType = 'list';
-      else if (method === 'get' && isEntityPath) opType = 'get';
+      if (method === 'get' && !isEntityPath) opType = 'find';
+      else if (method === 'get' && isEntityPath) opType = 'findOne';
       else if (method === 'post' && !isEntityPath) opType = 'create';
       else if (method === 'put' || method === 'patch') opType = 'update';
       else if (method === 'delete' && isEntityPath) opType = 'destroy';

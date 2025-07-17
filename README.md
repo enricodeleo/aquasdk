@@ -4,16 +4,17 @@
 
 <img src="logo.jpg" alt="aquasdk logo" width="200"/>
 
-AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK from an OpenAPI specification. It enables easy integration with APIs through a chainable, resource-oriented syntax. AquaSDK helps you rapidly create SDKs, making it easier to interact with any RESTful API.
+AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK from an OpenAPI specification. It enables easy integration with APIs through a **chainable, Waterline-style API** that is both powerful and intuitive.
 
 ---
 
 ## 🎉 **What's New in 2.0**
 
-Version 2.0 is a major update that introduces a new, more intuitive way to interact with your API.
+Version 2.0 is a major update focused on developer experience and API design.
 
-*   **Breaking Change**: The default SDK generation strategy is now `hierarchical`, which creates a beautiful, chained API that mirrors your RESTful resource structure.
-*   **New Chained API**: Interact with sub-resources in a natural, object-oriented way (e.g., `api.assistants(id).skills.list()`).
+*   **Breaking Change**: The default SDK is now generated with a `hierarchical` strategy, creating a beautiful, resource-oriented API.
+*   **Waterline-Style API**: The new API fully embraces the Waterline ORM syntax. Methods like `.find()`, `.findOne()`, `.populate()`, and `.limit()` are now available on all resources.
+*   **Chainable Queries**: All query methods are chainable and "thenable," meaning you can `await` them directly without needing to call `.execute()`.
 *   **Backward Compatibility**: The old, tag-based generation strategy is still available via the `--strategy=tags` flag for full backward compatibility.
 
 ---
@@ -28,8 +29,6 @@ npm install -g aquasdk
 
 ## 🛠 **Usage**
 
-Once installed, you can use the `generate-sdk` command to generate a JavaScript SDK from an OpenAPI specification.
-
 ```bash
 generate-sdk <swagger-file-path> <output-directory> <version> [--strategy] [--verbose]
 ```
@@ -38,14 +37,14 @@ generate-sdk <swagger-file-path> <output-directory> <version> [--strategy] [--ve
 
 - `swagger-file-path`: Path to your OpenAPI/Swagger JSON file (default: `./swagger.json`).
 - `output-directory`: Directory where the SDK will be generated (default: `./sdk`).
-- `version`: The version number of the generated SDK (default: `1.0.0`).
+- `version`: The version number of the generated SDK (default: `2.0.0`).
 - `--strategy`: The resource generation strategy. Can be `hierarchical` (default) or `tags`.
 - `--verbose`: Flag for detailed logging.
 
 ### Example
 
 ```bash
-# Generate the new, hierarchical SDK (default)
+# Generate the new, Waterline-style hierarchical SDK
 generate-sdk ./swagger.json ./sdk 2.0.0
 
 # Generate the old, tag-based SDK for backward compatibility
@@ -56,18 +55,19 @@ generate-sdk ./swagger.json ./sdk_legacy 1.5.0 --strategy=tags
 
 ## ✨ **Features**
 
-*   **Idiomatic, Chained API**: The new `hierarchical` strategy creates a natural, resource-oriented API that's a pleasure to use.
+*   **Waterline-Style Query Language**: A powerful, chainable API for querying your resources (`.find()`, `.findOne()`, `.populate()`, `.limit()`, `.skip()`, `.sort()`).
+*   **Hierarchical Resource Access**: Intuitively access sub-resources (e.g., `api.users(123).orders.find()`).
+*   **"Thenable" Queries**: `await` queries directly without needing `.execute()`.
 *   **Flexible Generation Strategies**: Choose between a modern, hierarchical API or a classic, tag-based structure.
-*   **OpenAPI-Driven Development**: Automates SDK generation from your spec, reducing errors and ensuring consistency.
-*   **Promise-based & Async-ready**: All API calls return promises, making them fully compatible with `async/await`.
-*   **Full Error Handling**: Includes detailed and meaningful error messages.
+*   **OpenAPI-Driven Development**: Automates SDK generation from your spec.
+*   **Promise-based & Async-ready**: Fully compatible with `async/await`.
 *   **Configurable HTTP Client**: Customize timeout, headers, and other `axios` options.
 
 ---
 
 ## 💻 **SDK API Examples**
 
-The new `hierarchical` strategy produces a clean, intuitive API. Here's how you'd use it:
+The new `hierarchical` strategy produces a clean, powerful, and intuitive API.
 
 ### Initializing the SDK
 
@@ -82,67 +82,78 @@ const api = new SDK({
 });
 ```
 
-### Working with Top-Level Resources
+### Finding Records with `.find()`
+
+The `.find()` method returns a chainable query that you can `await` directly.
 
 ```javascript
-async function manageAssistants() {
-  try {
-    // List all assistants
-    const { data: assistants } = await api.assistants.list();
-    console.log('Assistants:', assistants);
+async function findUsers() {
+  // Find all users
+  const { data: allUsers } = await api.users.find();
 
-    // Create a new assistant
-    const { data: newAssistant } = await api.assistants.create({
-      name: 'My New Assistant'
-    });
-    console.log('New Assistant:', newAssistant);
-
-    // Get a single assistant by ID
-    const { data: assistant } = await api.assistants(newAssistant.id).get();
-    console.log('Fetched Assistant:', assistant);
-
-    // Update an assistant
-    const { data: updatedAssistant } = await api.assistants(newAssistant.id).update({
-      name: 'My Updated Assistant'
-    });
-    console.log('Updated Assistant:', updatedAssistant);
-
-    // Delete an assistant
-    await api.assistants(newAssistant.id).destroy();
-    console.log('Assistant deleted.');
-
-  } catch (error) {
-    console.error('Error:', error.message);
-  }
+  // Find active users over 30, with pagination and sorting
+  const { data: activeUsers } = await api.users.find({ 
+    active: true,
+    age: { '>': 30 } 
+  })
+  .limit(10)
+  .skip(20)
+  .sort('createdAt DESC');
 }
 ```
 
-### Working with Sub-Resources (The Magic!)
+### Finding a Single Record with `.findOne()`
 
-This is where the new API really shines. Notice how easy it is to work with the `skills` of an `assistant`.
+The `.findOne()` method is also chainable, making it perfect for populating relations.
 
 ```javascript
-async function manageSkills() {
-  try {
-    const assistantId = 'asst_123'; // An existing assistant ID
+async function findOneUser() {
+  // Find a single user by ID
+  const { data: user } = await api.users.findOne(123);
 
-    // List all skills for a specific assistant
-    const { data: skills } = await api.assistants(assistantId).skills.list();
-    console.log(`Skills for assistant ${assistantId}:`, skills);
+  // Find a single user and populate their orders
+  const { data: userWithOrders } = await api.users.findOne(123)
+    .populate('orders');
+    
+  // Find the first active admin
+  const { data: admin } = await api.users.findOne({ 
+    active: true,
+    role: 'admin'
+  }).sort('createdAt ASC');
+}
+```
 
-    // Create a new skill for that assistant
-    const { data: newSkill } = await api.assistants(assistantId).skills.create({
-      name: 'My New Skill'
-    });
-    console.log('New Skill:', newSkill);
+### Creating, Updating, and Destroying Records
 
-    // Get a single skill by ID
-    const { data: skill } = await api.assistants(assistantId).skills(newSkill.id).get();
-    console.log('Fetched Skill:', skill);
+These methods are simple and direct.
 
-  } catch (error) {
-    console.error('Error:', error.message);
-  }
+```javascript
+async function manageUser() {
+  // Create a new user
+  const { data: newUser } = await api.users.create({ name: 'John Doe' });
+
+  // Update a user
+  const { data: updatedUser } = await api.users.update(newUser.id, { name: 'Jane Doe' });
+
+  // Destroy a user
+  await api.users.destroy(newUser.id);
+}
+```
+
+### Working with Sub-Resources
+
+The API for sub-resources is identical, making it incredibly intuitive.
+
+```javascript
+async function manageUserOrders() {
+  const userId = 123;
+
+  // Find all orders for a specific user
+  const { data: orders } = await api.users(userId).orders.find();
+
+  // Find a single order for that user and populate the product
+  const { data: order } = await api.users(userId).orders.findOne(456)
+    .populate('product');
 }
 ```
 

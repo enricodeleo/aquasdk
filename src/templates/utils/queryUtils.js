@@ -53,73 +53,116 @@ export function where(criteria) {
  * Create a complex criteria with operators
  */
 export const operators = {
-  /**
-   * Less than operator
-   * @param {*} value - Comparison value
-   * @returns {Object} - Operator expression
-   */
   lessThan: (value) => ({ '<': value }),
-
-  /**
-   * Less than or equal operator
-   * @param {*} value - Comparison value
-   * @returns {Object} - Operator expression
-   */
   lessThanOrEqual: (value) => ({ '<=': value }),
-
-  /**
-   * Greater than operator
-   * @param {*} value - Comparison value
-   * @returns {Object} - Operator expression
-   */
   greaterThan: (value) => ({ '>': value }),
-
-  /**
-   * Greater than or equal operator
-   * @param {*} value - Comparison value
-   * @returns {Object} - Operator expression
-   */
   greaterThanOrEqual: (value) => ({ '>=': value }),
-
-  /**
-   * Not equal operator
-   * @param {*} value - Comparison value
-   * @returns {Object} - Operator expression
-   */
   notEquals: (value) => ({ '!=': value }),
-
-  /**
-   * IN operator (value is in array)
-   * @param {Array} values - Array of values
-   * @returns {Object} - Operator expression
-   */
   in: (values) => ({ in: values }),
-
-  /**
-   * NOT IN operator (value is not in array)
-   * @param {Array} values - Array of values
-   * @returns {Object} - Operator expression
-   */
   notIn: (values) => ({ notIn: values }),
-
-  /**
-   * LIKE operator (string contains)
-   * @param {string} value - String to match
-   * @returns {Object} - Operator expression
-   */
   contains: (value) => ({ contains: value }),
-
-  /**
-   * Starts with operator
-   * @param {string} value - String to match
-   * @returns {Object} - Operator expression
-   */
   startsWith: (value) => ({ startsWith: value }),
-
-  /**
-   * Ends with operator
-   * @param {string} value - String to match
-   * @returns {Object} - Operator expression
-   */
   endsWith: (value) => ({ endsWith: value })
 };
+
+/**
+ * Query chain for waterline-like syntax
+ */
+export class QueryChain {
+  constructor(client, resourcePath, criteria = {}) {
+    this.client = client;
+    this.resourcePath = resourcePath;
+    this.criteria = { ...criteria };
+    this.limitValue = null;
+    this.skipValue = 0;
+    this.sortValue = null;
+    this.selectFields = null;
+    this.populateFields = null;
+
+    // Make the QueryChain thenable
+    this.then = (resolve, reject) => this.execute().then(resolve, reject);
+  }
+
+  limit(limit) {
+    this.limitValue = limit;
+    return this;
+  }
+
+  skip(skip) {
+    this.skipValue = skip;
+    return this;
+  }
+
+  select(fields) {
+    this.selectFields = Array.isArray(fields) ? fields : [fields];
+    return this;
+  }
+
+  sort(sort) {
+    this.sortValue = sort;
+    return this;
+  }
+
+  populate(fields) {
+    this.populateFields = Array.isArray(fields) ? fields : [fields];
+    return this;
+  }
+
+  async execute() {
+    const queryParams = { ...this.criteria };
+
+    if (this.limitValue !== null) {
+      queryParams.limit = this.limitValue;
+    }
+
+    if (this.skipValue > 0) {
+      queryParams.skip = this.skipValue;
+    }
+
+    if (this.sortValue) {
+      queryParams.sort = this.sortValue;
+    }
+
+    if (this.selectFields) {
+      queryParams.select = this.selectFields.join(',');
+    }
+
+    if (this.populateFields) {
+      queryParams.populate = this.populateFields.join(',');
+    }
+
+    return await this.client.request({
+      method: 'get',
+      url: this.resourcePath,
+      params: queryParams
+    });
+  }
+
+  async executeOne() {
+    const response = await this.limit(1).execute();
+    if (response.data && Array.isArray(response.data)) {
+      return {
+        data: response.data.length > 0 ? response.data[0] : null,
+        headers: response.headers
+      };
+    }
+    return response;
+  }
+
+  async count() {
+    const response = await this.client.request({
+      method: 'get',
+      url: `${this.resourcePath}/count`,
+      params: this.criteria
+    });
+
+    if (response.data) {
+      return {
+        data: { count: response.data.count || 0 },
+        headers: response.headers
+      };
+    }
+
+    return response;
+  }
+}

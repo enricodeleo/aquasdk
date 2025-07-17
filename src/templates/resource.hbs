@@ -3,79 +3,97 @@
  * Resource factory for {{resource.name}}
  * Generated: {{timestamp}}
  */
+import { QueryChain } from '../utils/queryUtils.js';
 
 const factory = (client, parentPath = '') => {
+  // This function is for accessing sub-resources, e.g., api.users(123)
   const resource = (id) => {
-    const path = parentPath ? `${parentPath}/${id}` : `{{resource.name}}/${id}`;
-
-    return {
-      {{#if resource.operations.get}}
-      /**
-       * {{resource.operations.get.summary}}
-       * @param {object} [query] - Query parameters
-       */
-      get: (query = {}) => client.request({
-        method: '{{resource.operations.get.method}}',
-        url: `/${path}`,
-        params: query
-      }),
-      {{/if}}
-
-      {{#if resource.operations.update}}
-      /**
-       * {{resource.operations.update.summary}}
-       * @param {object} data - The data to update.
-       * @param {object} [query] - Query parameters
-       */
-      update: (data, query = {}) => client.request({
-        method: '{{resource.operations.update.method}}',
-        url: `/${path}`,
-        data,
-        params: query
-      }),
-      {{/if}}
-
-      {{#if resource.operations.destroy}}
-      /**
-       * {{resource.operations.destroy.summary}}
-       * @param {object} [query] - Query parameters
-       */
-      destroy: (query = {}) => client.request({
-        method: '{{resource.operations.destroy.method}}',
-        url: `/${path}`,
-        params: query
-      }),
-      {{/if}}
-
-      {{#each resource.subresources}}
-      {{@key}}: factory(client, `${path}/{{@key}}`),
-      {{/each}}
-    };
+    const path = parentPath ? `${parentPath}/{{resource.name}}/${id}` : `{{resource.name}}/${id}`;
+    const subResources = {};
+    {{#each resource.subresources}}
+    subResources.{{@key}} = factory(client, path);
+    {{/each}}
+    return subResources;
   };
 
-  {{#if resource.operations.list}}
+  {{#if resource.operations.find}}
   /**
-   * {{resource.operations.list.summary}}
-   * @param {object} [query] - Query parameters
+   * Find multiple records
+   * @param {object} [criteria] - The criteria to filter by.
+   * @returns {QueryChain}
    */
-  resource.list = (query = {}) => client.request({
-    method: '{{resource.operations.list.method}}',
-    url: parentPath || '/{{resource.name}}',
-    params: query
-  });
+  resource.find = (criteria = {}) => {
+    const path = parentPath || '/{{resource.name}}';
+    return new QueryChain(client, path, criteria);
+  };
+  {{/if}}
+
+  {{#if resource.operations.findOne}}
+  /**
+   * Find a single record
+   * @param {string|number|object} criteria - The ID or criteria to find by.
+   * @returns {QueryChain}
+   */
+  resource.findOne = (criteria) => {
+    const path = parentPath || '/{{resource.name}}';
+    let requestPath = path;
+    let query = {};
+
+    if (typeof criteria === 'object' && criteria !== null) {
+      query = criteria;
+    } else {
+      requestPath = `${path}/${criteria}`;
+    }
+    
+    const queryChain = new QueryChain(client, requestPath, query);
+    
+    // Make it "thenable" and ensure it resolves to a single object
+    queryChain.then = (resolve, reject) => {
+      queryChain.limit(1).execute().then(response => {
+        if (response.data && Array.isArray(response.data)) {
+          response.data = response.data[0] || null;
+        }
+        resolve(response);
+      }, reject);
+    };
+
+    return queryChain;
+  };
   {{/if}}
 
   {{#if resource.operations.create}}
   /**
-   * {{resource.operations.create.summary}}
+   * Create a new record
    * @param {object} data - The data to create.
-   * @param {object} [query] - Query parameters
    */
-  resource.create = (data, query = {}) => client.request({
+  resource.create = (data) => client.request({
     method: '{{resource.operations.create.method}}',
     url: parentPath || '/{{resource.name}}',
-    data,
-    params: query
+    data
+  });
+  {{/if}}
+
+  {{#if resource.operations.update}}
+  /**
+   * Update an existing record
+   * @param {string|number} id - The ID of the record to update.
+   * @param {object} data - The data to update.
+   */
+  resource.update = (id, data) => client.request({
+    method: '{{resource.operations.update.method}}',
+    url: `${parentPath || '/{{resource.name}}'}/${id}`,
+    data
+  });
+  {{/if}}
+
+  {{#if resource.operations.destroy}}
+  /**
+   * Destroy an existing record
+   * @param {string|number} id - The ID of the record to destroy.
+   */
+  resource.destroy = (id) => client.request({
+    method: '{{resource.operations.destroy.method}}',
+    url: `${parentPath || '/{{resource.name}}'}/${id}`
   });
   {{/if}}
 
@@ -88,49 +106,64 @@ export default factory;
  * {{pascalCase resource.name}} Resource
  * Generated: {{timestamp}}
  */
+import { QueryChain } from '../utils/queryUtils.js';
 
 export class {{pascalCase resource.name}}Resource {
-  /**
-   * Create a new {{pascalCase resource.name}} resource
-   * @param {ApiClient} client - API client instance
-   */
   constructor(client) {
     this.client = client;
+    this.resourcePath = '/{{resource.name}}';
   }
 
-  {{#each resource.operations}}
-  /**
-   * {{summary}}
-   * {{description}}
-   {{#each pathParams}}
-   * @param {string} {{this}} - Path parameter
-   {{/each}}
-   {{#if hasRequestBody}}
-   * @param {Object} data - Request body
-   {{/if}}
-   {{#if queryParams.length}}
-   * @param {Object} [query] - Query parameters
-   {{/if}}
-   * @returns {Promise<{{returnType}}>} - Response with data and headers
-   */
-  async {{camelCase id}}({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data{{#if queryParams.length}}, {{/if}}{{/if}}{{#if queryParams.length}}query = {}{{/if}}) {
-    let url = '{{path}}'
-      {{#each pathParams}}
-      .replace(/\{{\s*{{{this}}}\s*\}}/, encodeURIComponent({{this}}))
-      {{/each}};
+  find(criteria = {}) {
+    return new QueryChain(this.client, this.resourcePath, criteria);
+  }
 
-    return await this.client.request({
-      method: '{{method}}',
-      url,
-      {{#if queryParams.length}}
-      params: query,
-      {{/if}}
-      {{#if hasRequestBody}}
-      data,
-      {{/if}}
+  findOne(criteria) {
+    let requestPath = this.resourcePath;
+    let query = {};
+
+    if (typeof criteria === 'object' && criteria !== null) {
+      query = criteria;
+    } else {
+      requestPath = `${this.resourcePath}/${criteria}`;
+    }
+    
+    const queryChain = new QueryChain(this.client, requestPath, query);
+    
+    queryChain.then = (resolve, reject) => {
+      queryChain.limit(1).execute().then(response => {
+        if (response.data && Array.isArray(response.data)) {
+          response.data = response.data[0] || null;
+        }
+        resolve(response);
+      }, reject);
+    };
+
+    return queryChain;
+  }
+
+  create(data) {
+    return this.client.request({
+      method: 'post',
+      url: this.resourcePath,
+      data
     });
   }
-  {{/each}}
+
+  update(id, data) {
+    return this.client.request({
+      method: 'patch',
+      url: `${this.resourcePath}/${id}`,
+      data
+    });
+  }
+
+  destroy(id) {
+    return this.client.request({
+      method: 'delete',
+      url: `${this.resourcePath}/${id}`
+    });
+  }
 }
 
 export default {{pascalCase resource.name}}Resource;
