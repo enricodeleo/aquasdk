@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.2](https://github.com/enricodeleo/aquasdk/compare/v1.9.1...v1.9.2) (2025-07-17)
+
+### Bug Fixes
+
+* **index.js:** provide default values for swagger file, output directory, and version if positional arguments are not provided ([f53def4](https://github.com/enricodeleo/aquasdk/commit/f53def45def6e48d71142e4a8fbfd203902e9fcf))
+
 ## [1.9.1](https://github.com/enricodeleo/aquasdk/compare/v1.9.0...v1.9.1) (2025-07-17)
 
 ### Bug Fixes
