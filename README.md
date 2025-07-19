@@ -12,9 +12,9 @@ AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK fr
 
 ---
 
-> **⚠️ Note on Upcoming v2.0.0 Release**
+> **⚠️ Note on v2.0.0+ Release**
 >
-> We are excited to announce that version 2.0.0 is underway! This major update will introduce significant improvements, including a more robust and intuitive Waterline-style query builder.
+> We introduced significant improvements, including a more robust and intuitive Waterline-style query builder.
 >
 > Please be aware that **v2.0.0 will include breaking changes**. The new query builder is designed to be more powerful and flexible, but it will require updates to your existing code. We believe the long-term benefits will be well worth the one-time migration effort.
 
