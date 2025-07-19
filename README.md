@@ -121,8 +121,13 @@ async function examples() {
     .sort('createdAt DESC');
 
   // Access sub-resources
+  // To access sub-resources, use the resource factory directly with the ID:
   const companyId = 'comp_123';
   const companyPeople = await api.companies(companyId).people.find();
+
+  // Note: Calling `find(id)` on a resource returns a QueryBuilder for filtering
+  // and does not directly expose sub-resources. For sub-resource access,
+  // use the syntax `api.resource(id).subResource()` as shown above.
 
   // Advanced query with pagination and field selection
   const paginatedAdmins = await api.users
@@ -152,12 +157,13 @@ async function examples() {
     status: operators.notIn(['archived', 'deleted'])
   });
 
-  // List sub-rsources
+  // List sub-resources
+  // To access sub-resources, use the resource factory directly with the ID:
   try {
-    const { data } = await api.users.find(props.assistantId).orders()
-    console.log(data)
+    const { data } = await api.users(props.assistantId).orders().find();
+    console.log(data);
   } catch (error) {
-    console.error("Failed to fetch user's orders:", error)
+    console.error("Failed to fetch user's orders:", error);
   }
 }
 ```
