@@ -6,7 +6,7 @@ export class QueryBuilder {
     this.client = client;
     this.method = method;
     this.path = path;
-    this.params = { where: criteria };
+    this.params = criteria || {};
   }
 
   /**
@@ -65,9 +65,9 @@ export class QueryBuilder {
    */
   execute() {
     const finalPath = this.path.replace(/\{(\w+)\}/g, (match, key) => {
-      if (this.params.where[key]) {
-        const value = this.params.where[key];
-        delete this.params.where[key];
+      if (this.params[key]) {
+        const value = this.params[key];
+        delete this.params[key];
         return encodeURIComponent(value);
       }
       return match;
@@ -75,11 +75,6 @@ export class QueryBuilder {
 
     // Clone the params to avoid mutation
     const finalParams = { ...this.params };
-
-    // If the where clause is empty, remove it completely
-    if (finalParams.where && Object.keys(finalParams.where).length === 0) {
-      delete finalParams.where;
-    }
 
     return this.client.request({
       method: this.method,
@@ -97,15 +92,6 @@ export class QueryBuilder {
   then(onFulfilled, onRejected) {
     return this.execute().then(onFulfilled, onRejected);
   }
-}
-
-/**
- * Create WHERE criteria in Waterline format
- * @param {Object} criteria - Filter criteria
- * @returns {Object} - Formatted criteria
- */
-export function where(criteria) {
-  return { where: criteria };
 }
 
 /**
