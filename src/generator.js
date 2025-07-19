@@ -15,6 +15,10 @@ Handlebars.registerHelper('pascalCase', function(str) {
   return pascalCase(str);
 });
 
+Handlebars.registerHelper('json', function(context) {
+  return new Handlebars.SafeString(JSON.stringify(context));
+});
+
 export async function generateSdk(api, apiWithRefs, outputDir, version, verbose) {
   // Ensure output directory exists
   await fs.mkdir(outputDir, { recursive: true });

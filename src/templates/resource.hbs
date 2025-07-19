@@ -22,6 +22,99 @@ const subResourceFactory = (client, parentPath, subResource) => {
     return subResources;
   };
 
+  const resourcePath = `${parentPath}/${subResource.name}`;
+
+  /**
+   * Starts a new query for finding records of a sub-resource.
+   * @param {object} [criteria] - The criteria to filter records.
+   * @returns {QueryBuilder} A QueryBuilder instance.
+   */
+  factory.find = (criteria) => {
+    return new QueryBuilder({
+      client,
+      method: 'get',
+      path: resourcePath,
+      criteria,
+    });
+  };
+
+  /**
+   * Starts a new query for finding a single sub-resource record.
+   * @param {string|number|object} [criteria] - The ID or criteria to find a single record.
+   * @returns {QueryBuilder} A QueryBuilder instance that resolves to a single object.
+   */
+  factory.findOne = (criteria) => {
+    const path = (typeof criteria === 'string' || typeof criteria === 'number')
+      ? `${resourcePath}/${criteria}`
+      : resourcePath;
+      
+    const filter = (typeof criteria === 'object' && criteria !== null) ? criteria : {};
+
+    const qb = new QueryBuilder({
+      client,
+      method: 'get',
+      path: path,
+      criteria: filter,
+    });
+
+    // Ensure findOne resolves to a single object, not an array
+    const originalExecute = qb.execute;
+    qb.execute = async function() {
+      if (!path.includes(`/${criteria}`)) {
+        this.limit(1);
+      }
+      const response = await originalExecute.call(this);
+      if (response.data && Array.isArray(response.data)) {
+        return {
+          ...response,
+          data: response.data.length > 0 ? response.data[0] : null,
+        };
+      }
+      return response;
+    };
+    
+    return qb;
+  };
+
+  /**
+   * Creates a new sub-resource record.
+   * @param {object} data - The data for the new record.
+   * @returns {Promise<any>} A promise that resolves with the created record.
+   */
+  factory.create = (data) => {
+    return client.request({
+      method: 'post',
+      url: resourcePath,
+      data,
+    });
+  };
+
+  /**
+   * Updates a sub-resource record by its ID.
+   * @param {string|number} id - The ID of the record to update.
+   * @param {object} data - The data to update the record with.
+   * @returns {Promise<any>} A promise that resolves with the updated record.
+   */
+  factory.update = (id, data) => {
+    return client.request({
+      method: 'patch',
+      url: `${resourcePath}/${id}`,
+      data,
+    });
+  };
+
+  /**
+   * Destroys a sub-resource record by its ID.
+   * @param {string|number} id - The ID of the record to destroy.
+   * @returns {Promise<any>} A promise that resolves when the record is destroyed.
+   */
+  factory.destroy = (id) => {
+    return client.request({
+      method: 'delete',
+      url: `${resourcePath}/${id}`,
+    });
+  };
+
   // Attach operations directly to the factory
   for (const op of subResource.operations) {
     /**
@@ -65,6 +158,8 @@ const subResourceFactory = (client, parentPath, subResource) => {
  * @returns {function} A callable resource function.
  */
 export default function {{pascalCase resource.name}}Factory(client) {
+  const resource = {{{json resource}}};
+
   /**
    * Access sub-resources of a specific {{resource.name}} instance.
    * @param {string|number} id - The ID of the {{resource.name}} instance.

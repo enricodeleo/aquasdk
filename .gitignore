@@ -38,3 +38,4 @@ lib-cov
 *.pid
 .api
 .aider*
+.env
