@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.1](https://github.com/enricodeleo/aquasdk/compare/v2.2.0...v2.2.1) (2025-07-19)
+
+### Bug Fixes
+
+* **queryUtils.js:** remove opinionated where wrapper ([a0abba0](https://github.com/enricodeleo/aquasdk/commit/a0abba09a116784d4998925c3e98fd21c70ee8bf))
+
 ## [2.2.0](https://github.com/enricodeleo/aquasdk/compare/v1.8.2...v2.2.0) (2025-07-17)
 
 ### Features
