@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.0](https://github.com/enricodeleo/aquasdk/compare/v2.2.2...v2.3.0) (2025-07-19)
+
+### Features
+
+* **generator:** add full CRUD support for sub-resources ([14a3aae](https://github.com/enricodeleo/aquasdk/commit/14a3aae5d250922201478468d91c8f3cff0052a8))
+
 ## [2.2.2](https://github.com/enricodeleo/aquasdk/compare/v2.2.1...v2.2.2) (2025-07-19)
 
 ## [2.2.1](https://github.com/enricodeleo/aquasdk/compare/v2.2.0...v2.2.1) (2025-07-19)
