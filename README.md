@@ -129,14 +129,14 @@ async function examples() {
     .find({ role: 'admin' })
     .limit(10)
     .skip(20)
-    "select(['name', 'lastLogin']);
+    .select(['name', 'lastLogin']);
 
   // Create a new user
   const newUser = await api.users.create({
     name: 'John Doe',
     email: 'john@example.com'
   });
-  
+
   // Access response headers (e.g., for rate limiting info)
   console.log('Rate limit remaining:', newUser.headers['x-rate-limit-remaining']);
 
@@ -151,6 +151,14 @@ async function examples() {
     createdAt: operators.greaterThan(new Date('2024-01-01')),
     status: operators.notIn(['archived', 'deleted'])
   });
+
+  // List sub-rsources
+  try {
+    const { data } = await api.users.find(props.assistantId).orders()
+    console.log(data)
+  } catch (error) {
+    console.error("Failed to fetch user's orders:", error)
+  }
 }
 ```
 
