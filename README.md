@@ -168,6 +168,28 @@ async function examples() {
 }
 ```
 
+### Making Custom Requests
+
+For advanced use cases where you need to make a request to an endpoint not covered by the generated SDK methods, you can use the `request` method on the `client` instance. This provides a way to make custom API calls using the underlying Axios configuration.
+
+```javascript
+// Example of a custom request
+async function getCustomData() {
+  try {
+    const response = await api.client.request({
+      method: 'get',
+      url: '/some_custom_endpoint',
+      params: {
+        custom_param: 'value'
+      }
+    });
+    console.log('Custom data:', response.data);
+  } catch (error) {
+    console.error('Failed to fetch custom data:', error);
+  }
+}
+```
+
 ---
 
 ## 🔍 **How It Works**
