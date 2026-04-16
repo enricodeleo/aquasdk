@@ -39,3 +39,4 @@ lib-cov
 .api
 .aider*
 .env
+generated-sdk/

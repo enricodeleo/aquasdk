@@ -281,9 +281,13 @@ export default function {{pascalCase resource.name}}Factory(client) {
    */
   resourceFn.{{id}} = ({{#if pathParams}}{{#each pathParams}}{{this}}, {{/each}}{{/if}}{{#if hasRequestBody}}data, {{/if}}{{#if queryParams.length}}query = {}{{/if}}) => {
     let url = '{{path}}';
-    {{#each pathParams}}
-    url = url.replace('{{"{"}}{{this}}{{"}"}}', encodeURIComponent({{this}}));
-    {{/each}}
+    {{#if pathParams}}
+    const pathParams = [{{#each pathParams}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}];
+    const pathValues = [{{#each pathParams}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}];
+    for (let i = 0; i < pathParams.length; i++) {
+      url = url.replace(`{${pathParams[i]}}`, encodeURIComponent(pathValues[i]));
+    }
+    {{/if}}
 
     return client.request({
       method: '{{method}}',
