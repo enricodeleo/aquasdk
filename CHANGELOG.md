@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.1](https://github.com/enricodeleo/aquasdk/compare/v2.3.0...v2.3.1) (2026-04-16)
+
+### Bug Fixes
+
+* resolve subresource ids ([185c431](https://github.com/enricodeleo/aquasdk/commit/185c4318fba70239c3d9b4460c48405c06d2c83b))
+
 ## [2.3.0](https://github.com/enricodeleo/aquasdk/compare/v2.2.2...v2.3.0) (2025-07-19)
 
 ### Features

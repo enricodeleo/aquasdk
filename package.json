@@ -1,6 +1,6 @@
 {
   "name": "aquasdk",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "A modern, chainable SDK generator from OpenAPI specs.",
   "keywords": [
     "api",
