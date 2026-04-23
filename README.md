@@ -211,6 +211,14 @@ A complete SDK is generated, including methods, models, and utility files.
 
 ---
 
+## Works well with Crudio
+
+AquaSDK generates a JavaScript SDK from an OpenAPI spec.
+
+If you also want a backend implementation from the same contract, see [Crudio](https://github.com/enricodeleo/crudio), which turns an OpenAPI spec into a stateful CRUD backend with persistence and strict validation.
+
+---
+
 ## 🚀 **Development and Contribution**
 
 Since AquaSDK is open source, we welcome contributions from developers who wish to improve the tool, add features, or fix bugs.
