@@ -1,246 +1,176 @@
-# **AquaSDK**
+<h1 align="center">AquaSDK</h1>
 
-**A modern JavaScript SDK generator from OpenAPI specs**
+<p align="center">
+  <strong>Generate a chainable JavaScript SDK from an OpenAPI 3.x spec.</strong>
+</p>
 
-<img src="logo.jpg" alt="aquasdk logo" width="200"/>
+<p align="center">
+  <a href="#quick-start">Quick Start</a> · <a href="#how-it-works">How It Works</a> · <a href="#supported--unsupported">Scope</a> · <a href="#sdk-api">SDK API</a> · <a href="#cli">CLI</a>
+</p>
 
-AquaSDK is an open-source tool that generates a fully-featured JavaScript SDK from an OpenAPI specification. It enables easy integration with APIs through a chainable, **Waterline-like** syntax. AquaSDK helps you rapidly create SDKs, making it easier to interact with RESTful APIs.
-
-### **Why**
-
-**Waterline ORM**, commonly used in [Sails.js](https://sailsjs.com/), is often praised for its intuitive and flexible syntax, which simplifies database interactions.
-
----
-
-> **⚠️ Note on v2.0.0+ Release**
->
-> We introduced significant improvements, including a more robust and intuitive Waterline-style query builder.
->
-> Please be aware that **v2.0.0 will include breaking changes**. The new query builder is designed to be more powerful and flexible, but it will require updates to your existing code. We believe the long-term benefits will be well worth the one-time migration effort.
+<p align="center">
+  <img src="logo.jpg" alt="AquaSDK logo" width="160"/>
+</p>
 
 ---
 
-## 📦 **Installation**
+## What is AquaSDK?
 
-You can easily install AquaSDK globally, or locally for development.
+AquaSDK reads an OpenAPI/Swagger specification and emits a ready-to-use JavaScript SDK with a Waterline-style, chainable query syntax. One command turns your API contract into an ergonomic client — methods, models, sub-resources, and all.
 
-### Global Installation
-Install AquaSDK globally for command-line access:
+## Why
+
+Hand-written SDKs drift from the spec. Generic generators produce verbose, callback-shaped code that feels nothing like the rest of your JavaScript.
+
+AquaSDK takes the opposite approach: the generated SDK reads like [Waterline ORM](https://sailsjs.com/documentation/reference/waterline-orm) — the query builder popularised by Sails.js — so working with a remote API feels like working with a local model.
+
+- queries are thenable (`await api.users.find()`, no `.execute()`)
+- resources chain naturally (`.find().populate('company').sort('createdAt DESC')`)
+- sub-resources nest the way they do in the spec (`api.companies(id).people.find()`)
+- responses expose both `data` and `headers` for rate limits, pagination, etc.
+
+**Use it for:** client libraries for internal services, integration tests, prototyping against a spec, replacing hand-written API wrappers.
+
+**Don't use it for:** APIs without an OpenAPI spec, or when you need bespoke auth flows the generator can't express.
+
+## Quick Start
+
 ```bash
+# Install globally
 npm install -g aquasdk
+
+# Generate an SDK from a spec
+generate-sdk ./openapi.json ./sdk 1.0.0
 ```
 
-### Local Installation (for development)
-To install locally and contribute to the project:
-```bash
-# Clone the repository
-git clone https://github.com/enricodeleo/aquasdk.git
-cd aquasdk
-npm install
-npm link
+Then use it:
+
+```javascript
+import API from './sdk/index.js';
+
+const api = new API({
+  baseUrl: 'https://api.example.com',
+  auth: { token: 'your-auth-token' },
+});
+
+// List with filters, pagination, and populated relations
+const { data, headers } = await api.users
+  .find({ active: true })
+  .populate('company')
+  .sort('createdAt DESC')
+  .limit(10);
+
+// Create
+await api.users.create({ name: 'John Doe', email: 'john@example.com' });
+
+// Update / delete
+await api.users.update(123, { name: 'Jane Doe' });
+await api.users.destroy(123);
+
+// Sub-resources
+const companyPeople = await api.companies('comp_123').people.find();
 ```
 
----
+## How It Works
 
-## 🛠 **Usage**
+1. **Parse** — reads your OpenAPI/Swagger JSON and resolves `$ref` pointers
+2. **Preprocess** — handles circular references and normalises the spec
+3. **Model** — emits a class per schema with typing-friendly field definitions
+4. **Chain** — builds a Waterline-style query builder per resource, including sub-resources
+5. **Bundle** — writes a self-contained SDK (models, methods, utilities) to the output directory
 
-Once installed, you can use the `generate-sdk` command to generate a JavaScript SDK from an OpenAPI specification.
+The generated SDK depends only on Axios and has no runtime dependency on AquaSDK itself.
 
-```bash
-generate-sdk <swagger-file-path> <output-directory> <version> [--verbose]
+## Supported / Unsupported
+
+### Supported
+
+- OpenAPI 3.x and Swagger 2.0 specs (JSON or YAML)
+- CRUD methods: `find`, `findOne`, `create`, `update`, `destroy`
+- Query builder: `where`, `select`, `sort`, `limit`, `skip`, `populate`
+- Rich operators (`greaterThan`, `notIn`, etc.) for complex `where` clauses
+- Nested sub-resources derived from path hierarchies
+- Response headers exposed alongside data on every call
+- Bearer token and basic auth out of the box
+- Custom Axios config (timeout, headers, interceptors) via the constructor
+- Escape hatch: `api.client.request(...)` for endpoints the generator doesn't cover
+
+### Not supported
+
+- GraphQL or non-REST APIs
+- Runtime schema validation of responses
+- Mocking — pair with [Crudio](https://github.com/enricodeleo/crudio) if you need a backend
+- File uploads / multipart (planned)
+- OAuth flows beyond static tokens
+
+## SDK API
+
+```javascript
+import API from './sdk/index.js';
+import { operators } from './sdk/utils/queryUtils.js';
+
+const api = new API({
+  baseUrl: 'https://api.example.com',
+  auth: {
+    token: 'your-auth-token',
+    // or: username: 'user', password: 'pass'
+  },
+  timeout: 5000,
+  headers: { 'Custom-Header': 'value' },
+});
+
+// Find one with field selection
+const user = await api.users.findOne(123).select(['name', 'email']);
+
+// Complex criteria with operators
+const recentSignups = await api.users.find({
+  createdAt: operators.greaterThan(new Date('2024-01-01')),
+  status: operators.notIn(['archived', 'deleted']),
+});
+
+// Access response metadata
+const created = await api.users.create({ name: 'John Doe' });
+console.log('Rate limit remaining:', created.headers['x-rate-limit-remaining']);
 ```
 
-### Arguments
+### Custom requests
 
-- `swagger-file-path`: Path to your OpenAPI/Swagger JSON file (default: `./swagger.json`)
-- `output-directory`: Directory where the SDK will be generated (default: `./sdk`)
-- `version`: The version number of the generated SDK (default: `1.0.0`)
-- `--verbose`: Flag for detailed logging
+For endpoints not covered by generated methods, fall back to the underlying Axios client:
 
-### Example
+```javascript
+const response = await api.client.request({
+  method: 'get',
+  url: '/some_custom_endpoint',
+  params: { custom_param: 'value' },
+});
+```
+
+## CLI
+
+```
+Usage: generate-sdk <spec-file> <output-dir> <version> [options]
+
+  <spec-file>    Path to your OpenAPI/Swagger file (default: ./swagger.json)
+  <output-dir>   Directory where the SDK is written (default: ./sdk)
+  <version>      Version of the generated SDK (default: 1.0.0)
+  --verbose      Enable detailed logging
+```
+
+Example:
 
 ```bash
 generate-sdk ./swagger.json ./sdk 1.0.0 --verbose
 ```
 
----
+## Ecosystem
 
-## 🎉 **Features of the Generated SDK**
+AquaSDK pairs well with [Crudio](https://github.com/enricodeleo/crudio), which turns the same OpenAPI spec into a stateful CRUD backend.
 
-The generated SDK includes the following features:
+- **AquaSDK**: generate the client from the spec
+- **Crudio**: run the backend from the spec
 
-- **Support for Sub-Resources**: Access nested resources with an intuitive, chainable syntax (e.g., `api.companies(id).people.find()`).
-- **Thenable Queries**: Await queries directly without needing an `.execute()` call, leading to cleaner, more intuitive code.
-- **OpenAPI-Driven Development**: Automates SDK generation from specs, reducing human error and ensuring alignment with API contracts.
-- **Promise-based API**: All API calls return promises, making them compatible with `async/await`.
-- **Response Headers Access**: All API responses include both data and headers, allowing access to important HTTP header information.
-- **Support for Associations**: Handling relationships via `.populate()` mirrors Waterline's eager-loading, a standout feature for nested resources.
-- **Configurable HTTP Client**: Support for additional Axios configuration options to customize timeout, headers, and other HTTP client settings.
+Point both at one OpenAPI document and you have a fully wired client and server derived from a single contract.
 
----
+## License
 
-## 💻 **SDK API Example**
-
-Once the SDK is generated, you can use it as follows:
-
-### Example Code
-```javascript
-import API from './sdk/index.js';
-import { operators } from './sdk/utils/queryUtils.js';
-
-// Initialize the SDK
-const api = new API({
-  baseUrl: 'https://api.example.com',
-  auth: {
-    token: 'your-auth-token'
-    // Or use basic auth
-    // username: 'user',
-    // password: 'pass'
-  },
-  // Additional Axios configuration options
-  timeout: 5000,
-  headers: {
-    'Custom-Header': 'value'
-  },
-});
-
-// Examples using the new Waterline-style syntax
-async function examples() {
-  // Find all users (queries are now "thenable")
-  const usersResponse = await api.users.find();
-  const users = usersResponse.data;
-  const headers = usersResponse.headers;
-
-  // Find a single user by ID and select specific fields
-  const user = await api.users.findOne(123).select(['name', 'email']);
-
-  // Find active users, populate their company, and sort by creation date
-  const activeUsers = await api.users
-    .find({ active: true })
-    .populate('company')
-    .sort('createdAt DESC');
-
-  // Access sub-resources
-  // To access sub-resources, use the resource factory directly with the ID:
-  const companyId = 'comp_123';
-  const companyPeople = await api.companies(companyId).people.find();
-
-  // Note: Calling `find(id)` on a resource returns a QueryBuilder for filtering
-  // and does not directly expose sub-resources. For sub-resource access,
-  // use the syntax `api.resource(id).subResource()` as shown above.
-
-  // Advanced query with pagination and field selection
-  const paginatedAdmins = await api.users
-    .find({ role: 'admin' })
-    .limit(10)
-    .skip(20)
-    .select(['name', 'lastLogin']);
-
-  // Create a new user
-  const newUser = await api.users.create({
-    name: 'John Doe',
-    email: 'john@example.com'
-  });
-
-  // Access response headers (e.g., for rate limiting info)
-  console.log('Rate limit remaining:', newUser.headers['x-rate-limit-remaining']);
-
-  // Update an existing user
-  const updatedUser = await api.users.update(123, { name: 'Jane Doe' });
-
-  // Delete a user
-  await api.users.destroy(123);
-
-  // Use complex criteria with operators for more powerful queries
-  const recentSignups = await api.users.find({
-    createdAt: operators.greaterThan(new Date('2024-01-01')),
-    status: operators.notIn(['archived', 'deleted'])
-  });
-
-  // List sub-resources
-  // To access sub-resources, use the resource factory directly with the ID:
-  try {
-    const { data } = await api.users(props.assistantId).orders().find();
-    console.log(data);
-  } catch (error) {
-    console.error("Failed to fetch user's orders:", error);
-  }
-}
-```
-
-### Making Custom Requests
-
-For advanced use cases where you need to make a request to an endpoint not covered by the generated SDK methods, you can use the `request` method on the `client` instance. This provides a way to make custom API calls using the underlying Axios configuration.
-
-```javascript
-// Example of a custom request
-async function getCustomData() {
-  try {
-    const response = await api.client.request({
-      method: 'get',
-      url: '/some_custom_endpoint',
-      params: {
-        custom_param: 'value'
-      }
-    });
-    console.log('Custom data:', response.data);
-  } catch (error) {
-    console.error('Failed to fetch custom data:', error);
-  }
-}
-```
-
----
-
-## 🔍 **How It Works**
-
-### 1. **Reads the OpenAPI spec**
-AquaSDK parses your Swagger/OpenAPI JSON definition to understand your API's structure.
-
-### 2. **Preprocesses the spec**
-The tool resolves circular references and prepares the API definition for SDK generation.
-
-### 3. **Generates Model Classes**
-A class is created for each model in the OpenAPI schema, ensuring proper data handling and validation.
-
-### 4. **Builds Method Chains**
-AquaSDK generates a Waterline-like query syntax for accessing your API’s resources.
-
-### 5. **Creates the SDK**
-A complete SDK is generated, including methods, models, and utility files.
-
----
-
-## Works well with Crudio
-
-AquaSDK generates a JavaScript SDK from an OpenAPI spec.
-
-If you also want a backend implementation from the same contract, see [Crudio](https://github.com/enricodeleo/crudio), which turns an OpenAPI spec into a stateful CRUD backend with persistence and strict validation.
-
----
-
-## 🚀 **Development and Contribution**
-
-Since AquaSDK is open source, we welcome contributions from developers who wish to improve the tool, add features, or fix bugs.
-
-### How to Contribute
-
-1. Fork the repository and create a new branch.
-2. Make your changes and commit them with clear messages.
-3. Push your changes and submit a pull request with a description of your updates.
-
-We appreciate all contributions and aim to review pull requests as quickly as possible.
-
----
-
-## 📄 **License**
-
-AquaSDK is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE.md) file for more information.
-
-The GPL-3.0 license allows you to freely use, modify, and distribute AquaSDK, but requires that you make any derivative works available under the same license. If you distribute AquaSDK, or any derivative works, you must include the source code and provide the GPL license terms.
-
-For more details, please refer to the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
-
----
-
-Feel free to use, modify, and contribute to AquaSDK! We hope this tool helps you build better, more efficient integrations with OpenAPI-based APIs. 🚀
+GPL-3.0-or-later. See [LICENSE.md](LICENSE.md).
